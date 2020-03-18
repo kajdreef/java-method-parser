@@ -1,0 +1,11 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    compile group: 'com.github.javaparser', name: 'javaparser-symbol-solver-core', version: '3.15.10'
+}
+
+application {
+    mainClassName = 'org.spideruci.methodparser.App'
+}

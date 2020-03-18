@@ -1,0 +1,23 @@
+allprojects {
+    apply plugin: 'java'
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        // Use JUnit Jupiter API for testing.
+        testImplementation ('org.junit.jupiter:junit-jupiter-api:5.6.0')
+
+        testRuntimeOnly ('org.junit.jupiter:junit-jupiter-engine:1.6.0')
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
+
+subprojects {
+    version = '1.0'
+}
