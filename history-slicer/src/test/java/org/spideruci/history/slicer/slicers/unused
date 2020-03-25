@@ -1,0 +1,67 @@
+
+            // AbstractTreeIterator oldTree = getTreeIterator(repo, "HEAD~^{tree}");
+            // AbstractTreeIterator newTree = getTreeIterator(repo, "HEAD^{tree}");
+
+            // List<DiffEntry> diffEntries = git.diff()
+            //     .setContextLines(0)
+            //     .setPathFilter(PathFilter.create(file_name))
+            //     .setOldTree(oldTree)
+            //     .setNewTree(newTree)
+            //     .setOutputStream(System.out)
+            //     .call();
+
+            // for (DiffEntry diff : diffEntries) {
+            //     // DiffParser parser = new UnifiedDiffParser();
+                
+            //     // diff.
+            //     DiffFormatter formatter = new DiffFormatter(System.out);
+            //     formatter.setRepository(repo);
+            //     formatter.toFileHeader(diff)
+            //         .toEditList()
+            //         .stream()
+            //             .forEach(System.out::println);
+            //     // formatter.format(diff);
+                
+            // }
+
+
+                // private AbstractTreeIterator getTreeIterator(Repository repo, String commitID) {
+    //     try {
+    //         ObjectId oid = repo.resolve(commitID);
+
+    //         ObjectReader reader = repo.newObjectReader();
+    //         CanonicalTreeParser tree = new CanonicalTreeParser();
+    //         tree.reset(reader, oid);
+    //         return tree;
+
+    //     } catch (IOException e) {
+    //         // TODO Auto-generated catch block
+    //         e.printStackTrace();
+    //     }
+    //     return null;
+    // }
+
+
+--------------------------------------------------------
+
+    		List<String> commits = this.trace(filePath);
+
+		
+		// int start = start_line,
+		// 	end = end_line + 1;
+		
+		// try {
+		// 	BlameResult blameResult = this.gitRepository.blame().setFilePath(filePath).call();
+
+		// 	blameResult.computeRange(start, end);
+		// 	Set<String> commits = 
+		// 	IntStream.range(start, end).forEach( idx -> 
+		// 		if (blameResult.hasSourceData(idx)) {
+		// 			blameResult.getSourceCommit(idx);
+		// 		}
+
+		// 	);
+
+		// } catch (GitAPIException | IOException e) {
+		// 	e.printStackTrace();
+		// }
