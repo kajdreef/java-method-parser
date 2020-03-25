@@ -1,7 +1,6 @@
 package org.spideruci.line.extractor;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -10,8 +9,8 @@ import org.spideruci.line.extractor.parsers.components.Component;
 import org.spideruci.line.extractor.parsers.Parser;
 import org.spideruci.line.extractor.util.DirectoryExplorer;
 
-public class Launcher {
-    public void start(String projectDir) {
+public class ParserLauncher {
+    public List<Component> start(String projectDir) {
         // Create a parser
         Parser parser = new MethodParser();
         parser.setRootFolder(new File(projectDir));
@@ -25,9 +24,7 @@ public class Launcher {
             methodSignatures.addAll(parser.parse(javaSourceFile.toPath()));
         }
 
-        for (Component c: methodSignatures) {
-            System.out.println(c.asString());
-        }
+        return methodSignatures;
     }
 
     public static void main(String[] args) {
@@ -35,7 +32,11 @@ public class Launcher {
         String projectDir = args[0];
 
         System.out.println(projectDir);
-
-        new Launcher().start(projectDir);
+        
+        List<Component> list = new ParserLauncher().start(projectDir);
+        
+        for (Component c : list) {
+            System.out.println(c.asString());
+        }
     }
 }

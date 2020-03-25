@@ -3,9 +3,9 @@ plugins {
 }
 
 dependencies {
-    compile group: 'com.github.javaparser', name: 'javaparser-symbol-solver-core', version: '3.15.10'
+    implementation group: 'com.github.javaparser', name: 'javaparser-symbol-solver-core', version: '3.15.10'
 }
 
 application {
-    mainClassName = 'org.spideruci.line.extractor.Launcher'
+    mainClassName = 'org.spideruci.line.extractor.ParserLauncher'
 }
