@@ -6,9 +6,13 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.apiguardian.api.API.Status.INTERNAL;
+import org.apiguardian.api.API;
+
 import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.Repository;
 
+@API(status = INTERNAL)
 public class ForwardHistorySlicer extends HistorySlicer {
 
     public ForwardHistorySlicer(Repository repo) {
