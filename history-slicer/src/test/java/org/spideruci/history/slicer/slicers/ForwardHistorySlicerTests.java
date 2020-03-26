@@ -51,7 +51,6 @@ class ForwardHistorySlicerTests {
             this.git.commit().setMessage("Modified file 1").call();
             
         } catch (IllegalStateException | GitAPIException | IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -60,7 +59,6 @@ class ForwardHistorySlicerTests {
         try {
             this.git.checkout().setName(String.format("HEAD~%d", x)).call();
         } catch (GitAPIException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
