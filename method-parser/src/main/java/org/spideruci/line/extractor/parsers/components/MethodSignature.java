@@ -1,5 +1,7 @@
 package org.spideruci.line.extractor.parsers.components;
 
+import java.util.Objects;
+
 public class MethodSignature extends Component {
 
     public final String file_path;
@@ -31,5 +33,27 @@ public class MethodSignature extends Component {
             this.line_start,
             this.line_end
         );
+    }
+
+    @Override
+    public boolean equals(Object other){
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof MethodSignature)){
+            return false;
+        }
+
+        MethodSignature otherMethod = (MethodSignature) other;
+
+        // TODO add parameters
+        return otherMethod.className.equals(this.className) && otherMethod.file_path.equals(this.file_path)
+                && otherMethod.mname.equals(this.mname) && otherMethod.rtype.equals(this.rtype);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.className, this.file_path, this.mname, this.rtype);
     }
 }
