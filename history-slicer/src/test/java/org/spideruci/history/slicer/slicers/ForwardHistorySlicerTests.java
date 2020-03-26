@@ -58,7 +58,7 @@ class ForwardHistorySlicerTests {
 
     private void checkoutXCommitAgo(int x){
         try {
-            this.git.checkout().setStartPoint(String.format("HEAD~%d", x)).call();
+            this.git.checkout().setName(String.format("HEAD~%d", x)).call();
         } catch (GitAPIException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

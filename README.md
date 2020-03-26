@@ -3,6 +3,6 @@
 The project can be build using:
 `./gradlew build`
 
-The experiment can be run by running `./gradlew experiment:run --args="--sut=/Users/kajdreef/code/tacoco --epoch 365`.
+The experiment can be run by running `./gradlew experiment:run --args="--sut <sut-path> --pc <sha1> --pc <sha2>`.
 
-Where *<sut-path>* is the path to the system under study and epoch is the time range.
+Where *<sut-path>* is the path to the system under study.
