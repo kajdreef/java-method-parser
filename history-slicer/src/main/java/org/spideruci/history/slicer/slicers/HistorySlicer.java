@@ -21,7 +21,7 @@ public abstract class HistorySlicer {
     public HistorySlicer setCommitRange(String pastCommit, String presentCommit) {
         try {
             this.pastCommit = this.repo.resolve(pastCommit);
-            this.presentCommit = this.repo.resolve(pastCommit);
+            this.presentCommit = this.repo.resolve(presentCommit);
             
         } catch (RevisionSyntaxException | IOException e) {
             // TODO Auto-generated catch block
