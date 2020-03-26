@@ -117,8 +117,8 @@ public class Experiment1 {
                 MethodSignature m = (MethodSignature) c;
                 List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
                 methodCommitsMap.put(c, list);
-                if (list.size() > 0)
-                    System.out.println(String.format("%s - %d", m.asString(), list.size()));
+                // if (list.size() > 0)
+                System.out.println(String.format("%s - %d", m.asString(), list.size()));
             }
         }
 
