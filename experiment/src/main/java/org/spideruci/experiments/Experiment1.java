@@ -16,6 +16,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRefNameException;
@@ -82,6 +83,8 @@ public class Experiment1 {
         git.checkout().setName(this.pastCommit).call();
         Set<Component> pastMethodSet = new ParserLauncher().start(this.projectPath);
         
+        git.reset().setMode(ResetType.HARD).call();
+
         git.checkout().setName(this.presentCommit).call();
         Set<Component> presentMethodSet = new ParserLauncher().start(this.projectPath);
 
@@ -119,6 +122,7 @@ public class Experiment1 {
             }
         }
 
+        git.reset().setMode(ResetType.HARD).call();
         git.checkout().setName("master").call();
     }
 
