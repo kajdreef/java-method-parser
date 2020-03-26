@@ -69,7 +69,7 @@ public class BackwardHistorySlicer extends HistorySlicer {
 				RevCommit past = repo.parseCommit(this.pastCommit);
 				pastDate = parseGitTimestampToString(past.getCommitTime());
 
-				RevCommit present = repo.parseCommit(this.pastCommit);
+				RevCommit present = repo.parseCommit(this.presentCommit);
 				presentDate = parseGitTimestampToString(present.getCommitTime());
 
 				command = String.format("git --no-pager log -L%d,%d:%s --oneline --no-patch --after=%s --before=%s",
