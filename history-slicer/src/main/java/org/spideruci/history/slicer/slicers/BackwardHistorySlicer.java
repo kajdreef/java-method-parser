@@ -13,8 +13,12 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BackwardHistorySlicer extends HistorySlicer {
+
+	private Logger logger = LoggerFactory.getLogger(BackwardHistorySlicer.class);
 
 	public BackwardHistorySlicer(Repository repo) {
 		super(repo);
@@ -76,7 +80,6 @@ public class BackwardHistorySlicer extends HistorySlicer {
 						start_line, end_line, filePath, pastDate, presentDate);
 			}
 
-
 			Process p = Runtime.getRuntime().exec(command, null, this.repo.getWorkTree());
 			p.waitFor();
 			
@@ -86,10 +89,12 @@ public class BackwardHistorySlicer extends HistorySlicer {
 				String line = reader.readLine();
 				result.add(line.split(" ")[0]);
 			}
+
 		} catch (NoWorkTreeException | IOException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		
 		return result;
 	}
