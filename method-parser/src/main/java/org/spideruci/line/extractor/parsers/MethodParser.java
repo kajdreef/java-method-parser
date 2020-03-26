@@ -2,12 +2,14 @@ package org.spideruci.line.extractor.parsers;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.nio.file.Path;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.type.Type;
@@ -35,19 +37,22 @@ public class MethodParser extends Parser {
             Type returnType = method.getType();
 
             Node node = method.getParentNode().get();
+            
 
-            if (node instanceof ClassOrInterfaceDeclaration) {
-                ClassOrInterfaceDeclaration parentNode = (ClassOrInterfaceDeclaration) method.getParentNode().get();
+            String methodNameStr = method.getName().getIdentifier();
+            List<String> parameters = method.getSignature().getParameterTypes().stream().map(p->p.asString()).collect(Collectors.toList());
+        
+            String returnTypeStr = returnType.asString();
+            int lineRangeStart = method.getRange().get().begin.line;
+            int lineRangeEnd = method.getRange().get().end.line;
+            String filePathStr = this.rootDirectory.toPath().relativize(javaFilePath).toString();
+            String classNameStr;
 
-                method_list.add(new MethodSignature(this.rootDirectory.toPath().relativize(javaFilePath).toString(),
-                        parentNode.getNameAsString(), method.getSignature().asString(), returnType.asString(),
-                        method.getRange().get().begin.line, method.getRange().get().end.line));
-            } else if (node instanceof EnumDeclaration) {
-                EnumDeclaration parentNode = (EnumDeclaration) method.getParentNode().get();
-                method_list.add(new MethodSignature(this.rootDirectory.toPath().relativize(javaFilePath).toString(),
-                    parentNode.getNameAsString(), method.getSignature().asString(), returnType.asString(),
-                    method.getRange().get().begin.line, method.getRange().get().end.line)
-                );
+            if (node instanceof NodeWithSimpleName<?>) {  
+                NodeWithSimpleName<Node> simpleNode = (NodeWithSimpleName<Node>) method.getParentNode().get();
+                classNameStr = simpleNode.getNameAsString();
+                method_list.add(new MethodSignature(filePathStr, classNameStr, methodNameStr, returnTypeStr, parameters,
+                        lineRangeStart, lineRangeEnd));
             }
         });
 

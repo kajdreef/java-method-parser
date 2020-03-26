@@ -1,5 +1,6 @@
 package org.spideruci.line.extractor.parsers.components;
 
+import java.util.List;
 import java.util.Objects;
 
 public class MethodSignature extends Component {
@@ -8,16 +9,16 @@ public class MethodSignature extends Component {
     public final String className;
     public final String mname;
     public final String rtype;
+    public final List<String> parameters;
     public final int line_start;
     public final int line_end;
 
-    // TODO add parameters
-
-    public MethodSignature(String file_path, String className, String mname, String rtype, int line_start, int line_end) {
+    public MethodSignature(String file_path, String className, String mname, String rtype, List<String> parameters, int line_start, int line_end) {
         this.file_path = file_path;
         this.className = className;
         this.mname = mname;
         this.rtype = rtype;
+        this.parameters = parameters;
         this.line_start = line_start;
         this.line_end = line_end;
     }
@@ -47,13 +48,15 @@ public class MethodSignature extends Component {
 
         MethodSignature otherMethod = (MethodSignature) other;
 
-        // TODO add parameters
-        return otherMethod.className.equals(this.className) && otherMethod.file_path.equals(this.file_path)
-                && otherMethod.mname.equals(this.mname) && otherMethod.rtype.equals(this.rtype);
+        return otherMethod.className.equals(this.className) &&
+                otherMethod.file_path.equals(this.file_path) &&
+                otherMethod.mname.equals(this.mname) &&
+                otherMethod.rtype.equals(this.rtype) &&
+                otherMethod.parameters.equals(this.parameters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.className, this.file_path, this.mname, this.rtype);
+        return Objects.hash(this.className, this.file_path, this.mname, this.rtype, this.parameters);
     }
 }
