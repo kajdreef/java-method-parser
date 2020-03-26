@@ -37,7 +37,6 @@ public class ForwardHistorySlicer extends HistorySlicer {
                 result.add(line.split(" ")[0]);
             }
         } catch (NoWorkTreeException | IOException | InterruptedException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -46,7 +45,6 @@ public class ForwardHistorySlicer extends HistorySlicer {
 
     @Override
     public List<String> trace(String filePath, int start_line, int end_line) {
-        // TODO Auto-generated method stub
         return null;
     }
 }

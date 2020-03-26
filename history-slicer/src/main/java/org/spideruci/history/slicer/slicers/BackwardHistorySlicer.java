@@ -55,7 +55,6 @@ public class BackwardHistorySlicer extends HistorySlicer {
 		return new SimpleDateFormat("yyyy-MM-dd").format(new Date(timestamp * 1000L));
 	}
 
-
 	@Override
 	public List<String> trace(String filePath, int start_line, int end_line) {
 		List<String> result = new LinkedList<>();
@@ -91,10 +90,8 @@ public class BackwardHistorySlicer extends HistorySlicer {
 			}
 
 		} catch (NoWorkTreeException | IOException | InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 		
 		return result;
 	}

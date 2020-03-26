@@ -39,7 +39,6 @@ public class Experiment1 {
     private Git git;
     private String pastCommit;
     private String presentCommit;
-    private int epoch;
     private Logger logger = LoggerFactory.getLogger(Experiment1.class);
 
     public Experiment1() {
@@ -57,11 +56,6 @@ public class Experiment1 {
 
         }
 
-        return this;
-    }
-
-    public Experiment1 setEpoch(int epoch) {
-        this.epoch = epoch;
         return this;
     }
 

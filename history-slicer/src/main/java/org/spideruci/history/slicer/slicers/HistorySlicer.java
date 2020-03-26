@@ -24,14 +24,11 @@ public abstract class HistorySlicer {
             this.presentCommit = this.repo.resolve(presentCommit);
             
         } catch (RevisionSyntaxException | IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         return this;
     }
 
     abstract public List<String> trace(String filePath);
-    // abstract public List<String> trace(String filePath, AnyObjectId since, AnyObjectId until);
     abstract public List<String> trace(String filePath, int start_line, int end_line);
-    // abstract public List<String> trace(String filePath, int start_line, int end_line, AnyObjectId since, AnyObjectId until);
 }

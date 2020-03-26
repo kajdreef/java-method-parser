@@ -45,13 +45,12 @@ class BackwardHistorySlicerTests {
 
             // Modify file_1, add, and commit
             String newContentFile1 = "public class A {\n\tpublic void methodA(int A){\n\t}\n}\r";
-        Files.write(rootGitRepo.resolve("A.java"), newContentFile1.getBytes());
+            Files.write(rootGitRepo.resolve("A.java"), newContentFile1.getBytes());
 
             this.git.add().addFilepattern(file_1_path.toString()).call();
             this.git.commit().setMessage("Modified file 1").call();
 
         } catch (IllegalStateException | GitAPIException | IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }

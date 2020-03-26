@@ -89,7 +89,6 @@ public class HistoryLauncher {
             RevCommit commit = repo.parseCommit(ref.getObjectId());
             tree = commit.getTree();
         } catch (IOException e1) {
-            // TODO Auto-generated catch block
             e1.printStackTrace();
             return null;
         }
