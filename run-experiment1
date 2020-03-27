@@ -1,6 +1,8 @@
 #!/bin/sh
 
 epoch=$2
+
+$(cd $1 && git reset --hard master > /dev/null 2>&1 && git clean -f)
 present_sha=$(cd ${1} && git log --format="%H" -n 1)
 present_date=$(cd ${1} && git log --date=iso --format="%aD" -n 1)
 
