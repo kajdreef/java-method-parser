@@ -105,7 +105,7 @@ public class Experiment1 {
         };
 
         // Get methods that appear in both snapshots
-        git.checkout().setName(this.pastCommit).call();
+        git.checkout().setName(this.pastCommit).setForced(true).call();
         Set<Component> pastMethodSet = new ParserLauncher()
             .start(this.projectPath)
             .stream()
@@ -113,8 +113,9 @@ public class Experiment1 {
                 .collect(Collectors.toSet());
 
         git.reset().setMode(ResetType.HARD).call();
+        // git.checkout().setName("master").setForced(true).call();
 
-        git.checkout().setName(this.presentCommit).call();
+        git.checkout().setName(this.presentCommit).setForced(true).call();
         Set<Component> presentMethodSet = new ParserLauncher()
             .start(this.projectPath)
             .stream()
