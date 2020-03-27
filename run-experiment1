@@ -1,18 +1,19 @@
 #!/bin/sh
 
+project_path=$1
 epoch=$2
 
-$(cd $1 && git reset --hard master > /dev/null 2>&1 && git clean -f)
-present_sha=$(cd ${1} && git log --format="%H" -n 1)
-present_date=$(cd ${1} && git log --date=iso --format="%aD" -n 1)
+$(cd $project_path && git reset --hard master > /dev/null 2>&1 && git clean -f)
+present_sha=$(cd ${project_path} && git log --format="%H" -n 1)
+present_date=$(cd ${project_path} && git log --date=iso --format="%aD" -n 1)
 
 # Note I am using gdate here (GNU Date)
 past_date=$(gdate -R --date="${present_date} -${epoch} days")
-past_sha=$(cd ${1} && git log --format="%H" --before="${past_date}" -n 1)
+past_sha=$(cd ${project_path} && git log --format="%H" --before="${past_date}" -n 1)
 
 
 echo "$1, $epoch"
 echo "$present_sha, $present_date"
 echo "$past_sha, $past_date"
 
-./gradlew experiment-1:run --args="--sut=$1 --present $present_sha --past $past_sha"
+./gradlew experiment-1:run --args="--sut=$project_path --present $present_sha --past $past_sha --allchanges"

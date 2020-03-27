@@ -47,6 +47,7 @@ public class Experiment1 {
     private Git git;
     private String pastCommit;
     private String presentCommit;
+    private boolean allChanges = false;
     private Logger logger = LoggerFactory.getLogger(Experiment1.class);
     private Gson gson;
     private Map<MethodSignature, List<String>> methodCommitMap;
@@ -59,6 +60,11 @@ public class Experiment1 {
 
         properties = new HashMap<>();
         methodCommitMap = new HashMap<>();
+    }
+
+    public Experiment1 setAllChanges() {
+        allChanges = true;
+        return this;
     }
 
     public Experiment1 setProject(String projectPath) {
@@ -134,7 +140,9 @@ public class Experiment1 {
         // Get the number of times a method was changed
         HistorySlicer slicer = HistorySlicerBuilder.getInstance().setForwardSlicing(false).build(this.repo);
 
-        slicer.setCommitRange(this.pastCommit, this.presentCommit);
+        if (!allChanges) {
+            slicer.setCommitRange(this.pastCommit, this.presentCommit);
+        }
 
         for (Component c : intersection) {
             if (c instanceof MethodSignature) {
@@ -198,6 +206,7 @@ public class Experiment1 {
         options.addOption("s", "sut", true, "Path to the system under study.");
         options.addOption("pa", "past", true, "Starting commit from which the experiment starts.");
         options.addOption("pr", "present", true, "Starting commit from which the experiment starts.");
+        options.addOption("all", "allchanges", false, "Instead of only getting the changes for each method in the range of past and present. Get all the changes from present till beginning of time.");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -213,6 +222,10 @@ public class Experiment1 {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("CLITester", options);
             System.exit(1);
+        }
+
+        if (cmd.hasOption("allchanges")) {
+            experiment1.setAllChanges();
         }
 
         // Run the experiment
