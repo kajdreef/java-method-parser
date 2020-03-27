@@ -1,13 +1,21 @@
 package org.spideruci.experiments;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -40,9 +48,17 @@ public class Experiment1 {
     private String pastCommit;
     private String presentCommit;
     private Logger logger = LoggerFactory.getLogger(Experiment1.class);
+    private Gson gson;
+    private Map<MethodSignature, List<String>> methodCommitMap;
+    private Map<String, String> properties;
 
     public Experiment1() {
+        gson = new GsonBuilder()
+            // .setPrettyPrinting()
+            .create();
 
+        properties = new HashMap<>();
+        methodCommitMap = new HashMap<>();
     }
 
     public Experiment1 setProject(String projectPath) {
@@ -53,7 +69,7 @@ public class Experiment1 {
             this.repo = new FileRepositoryBuilder().setGitDir(repoDirectory).build();
             this.git = new Git(repo);
         } catch (IOException e) {
-
+            e.printStackTrace();
         }
 
         return this;
@@ -69,55 +85,110 @@ public class Experiment1 {
         return set2.stream().filter(set1::contains).collect(Collectors.toSet());
     }
 
-    public void run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
+    public Experiment1 run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
             CheckoutConflictException, GitAPIException {
-        logger.info("Config - sut: {}, past-commit: {}, present-commit: {}", this.projectPath, this.pastCommit, this.presentCommit);
-        
+        logger.info("Config - sut: {}, past-commit: {}, present-commit: {}", this.projectPath, this.pastCommit,
+                this.presentCommit);
+
+        properties.put("sut", this.projectPath);
+        properties.put("present-commit", this.presentCommit);
+        properties.put("past-commit", this.pastCommit);
+
+        // A function to filter out test code.
+        Predicate<Component> testFilter = c -> {
+            if (c instanceof MethodSignature) {
+                MethodSignature m = (MethodSignature) c;
+                return ! m.file_path.contains("test");
+            } else {
+                return false;
+            }
+        };
+
         // Get methods that appear in both snapshots
         git.checkout().setName(this.pastCommit).call();
-        Set<Component> pastMethodSet = new ParserLauncher().start(this.projectPath);
-        
+        Set<Component> pastMethodSet = new ParserLauncher()
+            .start(this.projectPath)
+            .stream()
+                .filter(testFilter)
+                .collect(Collectors.toSet());
+
         git.reset().setMode(ResetType.HARD).call();
 
         git.checkout().setName(this.presentCommit).call();
-        Set<Component> presentMethodSet = new ParserLauncher().start(this.projectPath);
+        Set<Component> presentMethodSet = new ParserLauncher()
+            .start(this.projectPath)
+            .stream()
+                .filter(testFilter)
+                .collect(Collectors.toSet());
 
-        // Get the intersection and filter out all the method signtarues that contain 'test' in their filepath
-        Set<Component> intersection = intersectionList(pastMethodSet, presentMethodSet).stream()
-            .filter(c -> {
-                if (c instanceof MethodSignature) {
-                    MethodSignature m = (MethodSignature) c;
-                    return ! m.file_path.contains("test");
-                }
-                else {
-                    return false;
-                }
-            }).collect(Collectors.toSet());
+        // Get the intersection
+        Set<Component> intersection = intersectionList(pastMethodSet, presentMethodSet);
 
-        logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(), intersection.size());
+        logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(),
+                intersection.size());
+
         assert intersection.size() <= presentMethodSet.size();
         assert intersection.size() <= pastMethodSet.size();
 
-        // Get the number of times a method was changed 
-        HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .setForwardSlicing(false)
-            .build(this.repo); 
+        // Get the number of times a method was changed
+        HistorySlicer slicer = HistorySlicerBuilder.getInstance().setForwardSlicing(false).build(this.repo);
 
         slicer.setCommitRange(this.pastCommit, this.presentCommit);
 
-        Map<Component, List<String>> methodCommitsMap = new HashMap<>();
         for (Component c : intersection) {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
                 List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
-                methodCommitsMap.put(c, list);
+                methodCommitMap.put(m, list);
+
                 // if (list.size() > 0)
-                System.out.println(String.format("%s - %d", m.asString(), list.size()));
+                logger.debug("{} - {}", m.asString(), list.size());
             }
         }
 
         git.reset().setMode(ResetType.HARD).call();
         git.checkout().setName("master").call();
+
+        return this;
+    }
+
+    public Experiment1 report() {
+        String[] pathSplit = projectPath.split("/");
+
+        File report = new File(
+                String.format("%s-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit, this.pastCommit));
+
+        JsonObject content = new JsonObject();
+        
+        for (Entry<String, String> entry : properties.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+
+            content.addProperty(key, value);
+        }
+
+        JsonArray methods = new JsonArray();
+        for (Entry<MethodSignature, List<String>> entry : methodCommitMap.entrySet()) {
+            MethodSignature m = entry.getKey();
+            List<String> commits = entry.getValue();
+            JsonElement mJson = gson.toJsonTree(m);
+
+            mJson.getAsJsonObject().add("commits-sha", gson.toJsonTree(commits));
+            mJson.getAsJsonObject().addProperty("commits-count", commits.size());
+
+            methods.add(mJson);
+        }
+        content.add("methods", methods);
+
+        try {
+            FileWriter writer = new FileWriter(report);
+            gson.toJson(content, writer);
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return this;
     }
 
     public static void main(String[] args) throws ParseException {
@@ -145,7 +216,8 @@ public class Experiment1 {
 
         // Run the experiment
         try{
-            experiment1.run();
+            experiment1.run()
+                .report();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
