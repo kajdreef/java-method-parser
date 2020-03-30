@@ -48,7 +48,10 @@ public class Experiment1 {
     private String pastCommit;
     private String presentCommit;
     private boolean allChanges = false;
+    private String outputDir;
+
     private Logger logger = LoggerFactory.getLogger(Experiment1.class);
+
     private Gson gson;
     private Map<MethodSignature, List<String>> methodCommitMap;
     private Map<String, String> properties;
@@ -58,6 +61,7 @@ public class Experiment1 {
             // .setPrettyPrinting()
             .create();
 
+        outputDir = ".";
         properties = new HashMap<>();
         methodCommitMap = new HashMap<>();
     }
@@ -99,6 +103,7 @@ public class Experiment1 {
         properties.put("sut", this.projectPath);
         properties.put("present-commit", this.presentCommit);
         properties.put("past-commit", this.pastCommit);
+        properties.put("allchanges", Boolean.toString(this.allChanges));
 
         // A function to filter out test code.
         Predicate<Component> testFilter = c -> {
@@ -161,11 +166,30 @@ public class Experiment1 {
         return this;
     }
 
+    public Experiment1 setOutputDir(String outputDir) {
+        this.outputDir = outputDir;
+        return this;
+    }
+
     public Experiment1 report() {
         String[] pathSplit = projectPath.split("/");
 
+        File outputDirFile = new File(this.outputDir);
+        if (!outputDirFile.exists()) {
+            outputDirFile.mkdirs();
+        }
+
+        String outputFileName;
+        if (this.allChanges) {
+            outputFileName = String.format("%s-allchanges-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit, this.pastCommit);
+        } else {
+            outputFileName = String.format("%s-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit, this.pastCommit);
+        }
+
         File report = new File(
-                String.format("%s-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit, this.pastCommit));
+            outputDirFile,
+            outputFileName
+        );
 
         JsonObject content = new JsonObject();
         
@@ -206,6 +230,7 @@ public class Experiment1 {
         options.addOption("s", "sut", true, "Path to the system under study.");
         options.addOption("pa", "past", true, "Starting commit from which the experiment starts.");
         options.addOption("pr", "present", true, "Starting commit from which the experiment starts.");
+        options.addOption("o", "output", true, "Output directory");
         options.addOption("all", "allchanges", false, "Instead of only getting the changes for each method in the range of past and present. Get all the changes from present till beginning of time.");
 
         CommandLineParser parser = new DefaultParser();
@@ -226,6 +251,10 @@ public class Experiment1 {
 
         if (cmd.hasOption("allchanges")) {
             experiment1.setAllChanges();
+        }
+
+        if (cmd.hasOption("output")) {
+            experiment1.setOutputDir(cmd.getOptionValue("output"));
         }
 
         // Run the experiment
