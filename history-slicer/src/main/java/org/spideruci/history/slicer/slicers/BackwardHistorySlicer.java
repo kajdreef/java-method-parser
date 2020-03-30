@@ -60,25 +60,24 @@ public class BackwardHistorySlicer extends HistorySlicer {
 		List<String> result = new LinkedList<>();
 
 		try {
-			String command;
+			String command = null;
 
 			if (this.pastCommit == null || this.presentCommit == null) {
-
 				command = String.format("git --no-pager log -L%d,%d:%s --oneline --no-patch ",
 						start_line, end_line, filePath);
 			}
 			else {
-				String pastDate, presentDate;
+				String pastDate;
 				RevCommit past = repo.parseCommit(this.pastCommit);
 				pastDate = parseGitTimestampToString(past.getCommitTime());
 
 				RevCommit present = repo.parseCommit(this.presentCommit);
-				presentDate = parseGitTimestampToString(present.getCommitTime());
 
-				command = String.format("git --no-pager log -L%d,%d:%s --oneline --no-patch --after=%s --before=%s",
-						start_line, end_line, filePath, pastDate, presentDate);
+				command = String.format("git --no-pager log -L%d,%d:%s --oneline --no-patch --after=\'%s\' %s",
+						start_line, end_line, filePath, pastDate, present.getId().getName());
 			}
 
+			assert command != null;
 			Process p = Runtime.getRuntime().exec(command, null, this.repo.getWorkTree());
 			p.waitFor();
 			
