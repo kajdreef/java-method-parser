@@ -12,7 +12,8 @@ allprojects {
             'org.slf4j:slf4j-simple:2.0.0-alpha1',
             'org.apiguardian:apiguardian-api:1.1.0',
             'commons-cli:commons-cli:1.4',
-            'com.google.code.gson:gson:2.8.6'
+            'com.google.code.gson:gson:2.8.6',
+            'org.apache.commons:commons-lang3:3.10'
         )
         
         // Use JUnit Jupiter API for testing.

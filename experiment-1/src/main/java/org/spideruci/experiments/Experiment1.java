@@ -3,7 +3,10 @@ package org.spideruci.experiments;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +26,8 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
@@ -30,7 +35,11 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRefNameException;
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException;
 import org.eclipse.jgit.api.errors.RefNotFoundException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,13 +62,13 @@ public class Experiment1 {
     private Logger logger = LoggerFactory.getLogger(Experiment1.class);
 
     private Gson gson;
-    private Map<MethodSignature, List<String>> methodCommitMap;
+    private Map<MethodSignature, List<Pair<String, String>>> methodCommitMap;
     private Map<String, String> properties;
 
     public Experiment1() {
         gson = new GsonBuilder()
-            // .setPrettyPrinting()
-            .create();
+                // .setPrettyPrinting()
+                .create();
 
         outputDir = ".";
         properties = new HashMap<>();
@@ -109,7 +118,7 @@ public class Experiment1 {
         Predicate<Component> testFilter = c -> {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
-                return ! m.file_path.contains("test");
+                return !m.file_path.contains("test");
             } else {
                 return false;
             }
@@ -117,20 +126,14 @@ public class Experiment1 {
 
         // Get methods that appear in both snapshots
         git.checkout().setName(this.pastCommit).setForced(true).call();
-        Set<Component> pastMethodSet = new ParserLauncher()
-            .start(this.projectPath)
-            .stream()
-                .filter(testFilter)
+        Set<Component> pastMethodSet = new ParserLauncher().start(this.projectPath).stream().filter(testFilter)
                 .collect(Collectors.toSet());
 
         git.reset().setMode(ResetType.HARD).call();
         // git.checkout().setName("master").setForced(true).call();
 
         git.checkout().setName(this.presentCommit).setForced(true).call();
-        Set<Component> presentMethodSet = new ParserLauncher()
-            .start(this.projectPath)
-            .stream()
-                .filter(testFilter)
+        Set<Component> presentMethodSet = new ParserLauncher().start(this.projectPath).stream().filter(testFilter)
                 .collect(Collectors.toSet());
 
         // Get the intersection
@@ -153,7 +156,23 @@ public class Experiment1 {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
                 List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
-                methodCommitMap.put(m, list);
+                List<Pair<String, String>> finalList = new LinkedList<>();
+
+                for (String commit : list) {
+                    try {
+                        ObjectId oid = this.repo.resolve(commit);
+                        RevCommit revCommit = this.repo.parseCommit(oid);
+                        String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date(revCommit.getCommitTime() * 1000L));
+                        finalList.add(new ImmutablePair<String,String>(commit, date));
+                    } catch (IOException e) {
+                     
+                        e.printStackTrace();
+                    }
+                }
+
+                methodCommitMap.put(m, finalList);
+                
+                
 
                 // if (list.size() > 0)
                 logger.debug("{} - {}", m.asString(), list.size());
@@ -201,12 +220,20 @@ public class Experiment1 {
         }
 
         JsonArray methods = new JsonArray();
-        for (Entry<MethodSignature, List<String>> entry : methodCommitMap.entrySet()) {
+        for (Entry<MethodSignature, List<Pair<String, String>>> entry : methodCommitMap.entrySet()) {
             MethodSignature m = entry.getKey();
-            List<String> commits = entry.getValue();
+            List<Pair<String, String>> commits = entry.getValue();
             JsonElement mJson = gson.toJsonTree(m);
+            JsonArray commitsJson = new JsonArray();
 
-            mJson.getAsJsonObject().add("commits-sha", gson.toJsonTree(commits));
+            for (Pair<String, String> commit: commits) {
+                JsonObject commitJson = new JsonObject();
+                commitJson.addProperty("SHA1", commit.getLeft());
+                commitJson.addProperty("date", commit.getRight());
+                commitsJson.add(commitJson);
+            }
+            
+            mJson.getAsJsonObject().add("commits", commitsJson);
             mJson.getAsJsonObject().addProperty("commits-count", commits.size());
 
             methods.add(mJson);
