@@ -35,8 +35,6 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRefNameException;
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException;
 import org.eclipse.jgit.api.errors.RefNotFoundException;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -67,7 +65,7 @@ public class Experiment1 {
 
     public Experiment1() {
         gson = new GsonBuilder()
-                // .setPrettyPrinting()
+                .setPrettyPrinting()
                 .create();
 
         outputDir = ".";

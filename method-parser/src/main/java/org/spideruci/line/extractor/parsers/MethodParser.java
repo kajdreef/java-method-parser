@@ -33,10 +33,7 @@ public class MethodParser extends Parser {
         List<Component> method_list = new LinkedList<>();
         cu.findAll(MethodDeclaration.class).stream().forEach((MethodDeclaration method) -> {
             Type returnType = method.getType();
-
-            Node node = method.getParentNode().get();
             
-
             String methodNameStr = method.getName().getIdentifier();
             List<String> parameters = method.getSignature().getParameterTypes().stream().map(p->p.asString()).collect(Collectors.toList());
         
@@ -45,9 +42,12 @@ public class MethodParser extends Parser {
             int lineRangeEnd = method.getRange().get().end.line;
             String filePathStr = this.rootDirectory.toPath().relativize(javaFilePath).toString();
             String classNameStr;
-
-            if (node instanceof NodeWithSimpleName<?>) {  
-                NodeWithSimpleName<Node> simpleNode = (NodeWithSimpleName<Node>) method.getParentNode().get();
+            
+            Node parent = method.getParentNode().get();
+            if (parent instanceof NodeWithSimpleName) {  
+                
+                @SuppressWarnings("unchecked")
+                NodeWithSimpleName<Node> simpleNode = (NodeWithSimpleName<Node>) parent;
                 classNameStr = simpleNode.getNameAsString();
                 method_list.add(new MethodSignature(filePathStr, classNameStr, methodNameStr, returnTypeStr, parameters,
                         lineRangeStart, lineRangeEnd));
