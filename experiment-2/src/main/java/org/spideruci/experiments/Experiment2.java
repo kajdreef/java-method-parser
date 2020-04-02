@@ -47,7 +47,7 @@ import org.spideruci.line.extractor.ParserLauncher;
 import org.spideruci.line.extractor.parsers.components.Component;
 import org.spideruci.line.extractor.parsers.components.MethodSignature;
 
-public class Experiment1 {
+public class Experiment2 {
 
     private String projectPath;
     private Repository repo;
@@ -57,13 +57,13 @@ public class Experiment1 {
     private boolean allChanges = false;
     private String outputDir;
 
-    private Logger logger = LoggerFactory.getLogger(Experiment1.class);
+    private Logger logger = LoggerFactory.getLogger(Experiment2.class);
 
     private Gson gson;
     private Map<MethodSignature, List<Pair<String, String>>> methodCommitMap;
     private Map<String, String> properties;
 
-    public Experiment1() {
+    public Experiment2() {
         gson = new GsonBuilder()
                 .setPrettyPrinting()
                 .create();
@@ -73,12 +73,12 @@ public class Experiment1 {
         methodCommitMap = new HashMap<>();
     }
 
-    public Experiment1 setAllChanges() {
+    public Experiment2 setAllChanges() {
         allChanges = true;
         return this;
     }
 
-    public Experiment1 setProject(String projectPath) {
+    public Experiment2 setProject(String projectPath) {
         this.projectPath = projectPath;
         File repoDirectory = new File(projectPath + File.separator + ".git");
 
@@ -92,7 +92,7 @@ public class Experiment1 {
         return this;
     }
 
-    public Experiment1 setCommitRange(String pastCommit, String presentCommit) {
+    public Experiment2 setCommitRange(String pastCommit, String presentCommit) {
         this.pastCommit = pastCommit;
         this.presentCommit = presentCommit;
         return this;
@@ -102,7 +102,7 @@ public class Experiment1 {
         return set2.stream().filter(set1::contains).collect(Collectors.toSet());
     }
 
-    public Experiment1 run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
+    public Experiment2 run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
             CheckoutConflictException, GitAPIException {
         logger.info("Config - sut: {}, past-commit: {}, present-commit: {}", this.projectPath, this.pastCommit,
                 this.presentCommit);
@@ -183,12 +183,12 @@ public class Experiment1 {
         return this;
     }
 
-    public Experiment1 setOutputDir(String outputDir) {
+    public Experiment2 setOutputDir(String outputDir) {
         this.outputDir = outputDir;
         return this;
     }
 
-    public Experiment1 report() {
+    public Experiment2 report() {
         String[] pathSplit = projectPath.split("/");
 
         File outputDirFile = new File(this.outputDir);
@@ -262,11 +262,11 @@ public class Experiment1 {
         CommandLine cmd = parser.parse(options, args);
 
         // Initialize the experiment and set all the parameters
-        Experiment1 experiment1 = new Experiment1();
+        Experiment2 Experiment2 = new Experiment2();
 
         if (cmd.hasOption("sut") && cmd.hasOption("past") && cmd.hasOption("present")) {
-            experiment1.setProject(cmd.getOptionValue("sut"));
-            experiment1.setCommitRange(cmd.getOptionValue("past"), cmd.getOptionValue("present"));
+            Experiment2.setProject(cmd.getOptionValue("sut"));
+            Experiment2.setCommitRange(cmd.getOptionValue("past"), cmd.getOptionValue("present"));
         }
         else {
             HelpFormatter formatter = new HelpFormatter();
@@ -275,16 +275,16 @@ public class Experiment1 {
         }
 
         if (cmd.hasOption("allchanges")) {
-            experiment1.setAllChanges();
+            Experiment2.setAllChanges();
         }
 
         if (cmd.hasOption("output")) {
-            experiment1.setOutputDir(cmd.getOptionValue("output"));
+            Experiment2.setOutputDir(cmd.getOptionValue("output"));
         }
 
         // Run the experiment
         try{
-            experiment1.run()
+            Experiment2.run()
                 .report();
         } catch (Exception e) {
             e.printStackTrace();

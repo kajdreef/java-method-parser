@@ -10,5 +10,5 @@ dependencies {
 }
 
 application {
-    mainClassName = 'org.spideruci.experiments.Experiment1'
+    mainClassName = 'org.spideruci.experiments.Experiment2'
 }
