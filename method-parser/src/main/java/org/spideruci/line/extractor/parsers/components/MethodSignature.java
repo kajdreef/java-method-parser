@@ -12,8 +12,9 @@ public class MethodSignature extends Component {
     public final List<String> parameters;
     public final int line_start;
     public final int line_end;
+    public final List<String> annotations;
 
-    public MethodSignature(String file_path, String className, String mname, String rtype, List<String> parameters, int line_start, int line_end) {
+    public MethodSignature(String file_path, String className, String mname, String rtype, List<String> parameters, int line_start, int line_end, List<String> annotations) {
         this.file_path = file_path;
         this.className = className;
         this.mname = mname;
@@ -21,6 +22,7 @@ public class MethodSignature extends Component {
         this.parameters = parameters;
         this.line_start = line_start;
         this.line_end = line_end;
+        this.annotations = annotations;
     }
 
     @Override
@@ -34,6 +36,10 @@ public class MethodSignature extends Component {
             this.line_start,
             this.line_end
         );
+    }
+
+    public boolean containAnnotation(String annotation) {
+        return this.annotations.contains(annotation);
     }
 
     @Override

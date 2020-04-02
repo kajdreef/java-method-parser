@@ -42,7 +42,8 @@ public class MethodParser extends Parser {
             int lineRangeEnd = method.getRange().get().end.line;
             String filePathStr = this.rootDirectory.toPath().relativize(javaFilePath).toString();
             String classNameStr;
-            
+            List<String> annotations = method.getAnnotations().stream().map(annotation -> annotation.getNameAsString()).collect(Collectors.toList());
+
             Node parent = method.getParentNode().get();
             if (parent instanceof NodeWithSimpleName) {  
                 
@@ -50,7 +51,7 @@ public class MethodParser extends Parser {
                 NodeWithSimpleName<Node> simpleNode = (NodeWithSimpleName<Node>) parent;
                 classNameStr = simpleNode.getNameAsString();
                 method_list.add(new MethodSignature(filePathStr, classNameStr, methodNameStr, returnTypeStr, parameters,
-                        lineRangeStart, lineRangeEnd));
+                        lineRangeStart, lineRangeEnd, annotations));
             }
         });
 
