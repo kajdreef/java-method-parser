@@ -10,4 +10,5 @@
 rootProject.name = 'history-slicing'
 include 'method-parser'
 include 'history-slicer'
-include 'experiment-2'
+include 'experiment1'
+include 'experiment2'

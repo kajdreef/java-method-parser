@@ -1,4 +1,4 @@
-package org.spideruci.experiments;
+package org.spideruci.experiment1;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -47,23 +47,21 @@ import org.spideruci.line.extractor.ParserLauncher;
 import org.spideruci.line.extractor.parsers.components.Component;
 import org.spideruci.line.extractor.parsers.components.MethodSignature;
 
-public class Experiment2 {
+public class Experiment1 {
 
     private String projectPath;
     private Repository repo;
     private Git git;
-    private String pastCommit;
-    private String presentCommit;
-    private boolean allChanges = false;
+    private String commitID;
     private String outputDir;
 
-    private Logger logger = LoggerFactory.getLogger(Experiment2.class);
+    private Logger logger = LoggerFactory.getLogger(Experiment1.class);
 
     private Gson gson;
     private Map<MethodSignature, List<Pair<String, String>>> methodCommitMap;
     private Map<String, String> properties;
 
-    public Experiment2() {
+    public Experiment1() {
         gson = new GsonBuilder()
                 .setPrettyPrinting()
                 .create();
@@ -73,47 +71,31 @@ public class Experiment2 {
         methodCommitMap = new HashMap<>();
     }
 
-    public Experiment2 setAllChanges() {
-        allChanges = true;
-        return this;
-    }
-
-    public Experiment2 setProject(String projectPath) {
+    public Experiment1 setProject(String projectPath, String commit) {
         this.projectPath = projectPath;
+        this.commitID = commit;
         File repoDirectory = new File(projectPath + File.separator + ".git");
 
         try {
             this.repo = new FileRepositoryBuilder().setGitDir(repoDirectory).build();
             this.git = new Git(repo);
-        } catch (IOException e) {
+            this.git.checkout().setName(commit).call();
+        } catch (IOException | GitAPIException e) {
             e.printStackTrace();
         }
 
         return this;
     }
 
-    public Experiment2 setCommitRange(String pastCommit, String presentCommit) {
-        this.pastCommit = pastCommit;
-        this.presentCommit = presentCommit;
-        return this;
-    }
-
-    public Set<Component> intersectionList(Set<Component> set1, Set<Component> set2) {
-        return set2.stream().filter(set1::contains).collect(Collectors.toSet());
-    }
-
-    public Experiment2 run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
+    public Experiment1 run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
             CheckoutConflictException, GitAPIException {
-        logger.info("Config - sut: {}, past-commit: {}, present-commit: {}", this.projectPath, this.pastCommit,
-                this.presentCommit);
+        logger.info("Config - sut: {}, commit-id: {}", this.projectPath, this.commitID);
 
         properties.put("sut", this.projectPath);
-        properties.put("present-commit", this.presentCommit);
-        properties.put("past-commit", this.pastCommit);
-        properties.put("allchanges", Boolean.toString(this.allChanges));
+        properties.put("commit", this.commitID);
 
         // A function to filter out test code.
-        Predicate<Component> testFilter = c -> {
+        Predicate<Component> productionFilter = c -> {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
                 return !m.file_path.contains("test");
@@ -122,35 +104,36 @@ public class Experiment2 {
             }
         };
 
+        Predicate<Component> testFilter = c -> {
+            if (c instanceof MethodSignature) {
+                MethodSignature m = (MethodSignature) c;
+                // TODO add extends TestCase Java
+                return m.containAnnotation("Test");
+            } else {
+                return false;
+            }
+        };
+
         // Get methods that appear in both snapshots
-        git.checkout().setName(this.pastCommit).setForced(true).call();
-        Set<Component> pastMethodSet = new ParserLauncher().start(this.projectPath).stream().filter(testFilter)
+        Set<Component> allMethods = new ParserLauncher().start(this.projectPath);
+
+        Set<Component> productionMethods = allMethods.stream()
+                .filter(productionFilter)
                 .collect(Collectors.toSet());
 
-        git.reset().setMode(ResetType.HARD).call();
-        // git.checkout().setName("master").setForced(true).call();
-
-        git.checkout().setName(this.presentCommit).setForced(true).call();
-        Set<Component> presentMethodSet = new ParserLauncher().start(this.projectPath).stream().filter(testFilter)
+        Set<Component> testMethods = allMethods.stream()
+                .filter(testFilter)
                 .collect(Collectors.toSet());
 
-        // Get the intersection
-        Set<Component> intersection = intersectionList(pastMethodSet, presentMethodSet);
-
-        logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(),
-                intersection.size());
-
-        assert intersection.size() <= presentMethodSet.size();
-        assert intersection.size() <= pastMethodSet.size();
+        logger.info("Number of tests: {}", testMethods.size());
+        properties.put("number-of-tests", String.valueOf(testMethods.size()));
 
         // Get the number of times a method was changed
-        HistorySlicer slicer = HistorySlicerBuilder.getInstance().setForwardSlicing(false).build(this.repo);
+        HistorySlicer slicer = HistorySlicerBuilder.getInstance()
+            .setForwardSlicing(false)
+            .build(this.repo);
 
-        if (!allChanges) {
-            slicer.setCommitRange(this.pastCommit, this.presentCommit);
-        }
-
-        for (Component c : intersection) {
+        for (Component c : productionMethods) {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
                 List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
@@ -170,9 +153,6 @@ public class Experiment2 {
 
                 methodCommitMap.put(m, finalList);
                 
-                
-
-                // if (list.size() > 0)
                 logger.debug("{} - {}", m.asString(), list.size());
             }
         }
@@ -183,12 +163,12 @@ public class Experiment2 {
         return this;
     }
 
-    public Experiment2 setOutputDir(String outputDir) {
+    public Experiment1 setOutputDir(String outputDir) {
         this.outputDir = outputDir;
         return this;
     }
 
-    public Experiment2 report() {
+    public Experiment1 report() {
         String[] pathSplit = projectPath.split("/");
 
         File outputDirFile = new File(this.outputDir);
@@ -196,12 +176,7 @@ public class Experiment2 {
             outputDirFile.mkdirs();
         }
 
-        String outputFileName;
-        if (this.allChanges) {
-            outputFileName = String.format("%s-allchanges-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit, this.pastCommit);
-        } else {
-            outputFileName = String.format("%s-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit, this.pastCommit);
-        }
+        String outputFileName = String.format("%s-%s.json", pathSplit[pathSplit.length - 1], this.commitID);
 
         File report = new File(
             outputDirFile,
@@ -253,20 +228,18 @@ public class Experiment2 {
         Options options = new Options();
 
         options.addOption("s", "sut", true, "Path to the system under study.");
-        options.addOption("pa", "past", true, "Starting commit from which the experiment starts.");
-        options.addOption("pr", "present", true, "Starting commit from which the experiment starts.");
+        options.addOption("c", "commit", true, "Commit from which the experiment starts.");
         options.addOption("o", "output", true, "Output directory");
-        options.addOption("all", "allchanges", false, "Instead of only getting the changes for each method in the range of past and present. Get all the changes from present till beginning of time.");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
 
         // Initialize the experiment and set all the parameters
-        Experiment2 Experiment2 = new Experiment2();
+        Experiment1 Experiment1 = new Experiment1();
 
-        if (cmd.hasOption("sut") && cmd.hasOption("past") && cmd.hasOption("present")) {
-            Experiment2.setProject(cmd.getOptionValue("sut"));
-            Experiment2.setCommitRange(cmd.getOptionValue("past"), cmd.getOptionValue("present"));
+        if (cmd.hasOption("sut") && cmd.hasOption("commit") && cmd.hasOption("output")) {
+            Experiment1.setProject(cmd.getOptionValue("sut"), cmd.getOptionValue("commit"));
+            Experiment1.setOutputDir(cmd.getOptionValue("output"));
         }
         else {
             HelpFormatter formatter = new HelpFormatter();
@@ -274,17 +247,9 @@ public class Experiment2 {
             System.exit(1);
         }
 
-        if (cmd.hasOption("allchanges")) {
-            Experiment2.setAllChanges();
-        }
-
-        if (cmd.hasOption("output")) {
-            Experiment2.setOutputDir(cmd.getOptionValue("output"));
-        }
-
         // Run the experiment
         try{
-            Experiment2.run()
+            Experiment1.run()
                 .report();
         } catch (Exception e) {
             e.printStackTrace();
