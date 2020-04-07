@@ -16,4 +16,4 @@ echo "$1, $epoch"
 echo "$present_sha, $present_date"
 echo "$past_sha, $past_date"
 
-./gradlew experiment-1:run --args="--sut=$project_path --present $present_sha --past $past_sha --output './data/$epoch'"
+./gradlew experiment2:run --args="--sut=$project_path --present $present_sha --past $past_sha --allchanges --output './data/$epoch'"
