@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Constants;
@@ -55,7 +56,6 @@ public class HistoryLauncher {
         try {
             //  Initialize slicer
             HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-                .setForwardSlicing(false)
                 .build(this.repo);
 
             // Get the correct content 
@@ -71,8 +71,8 @@ public class HistoryLauncher {
 
             for (File f: javaFiles) {
                 System.out.println(f.toString());
-                List<String> commits = slicer.trace(f.toString());
-                commits.stream().forEach(System.out::println);
+                Map<String, Object> properties = slicer.trace(f.toString());
+                properties.forEach((key, value) -> System.out.println(key + " - " + value.toString()));
                 System.out.println("");
             }
 

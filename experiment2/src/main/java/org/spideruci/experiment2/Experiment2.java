@@ -142,7 +142,8 @@ public class Experiment2 {
         assert intersection.size() <= pastMethodSet.size();
 
         // Get the number of times a method was changed
-        HistorySlicer slicer = HistorySlicerBuilder.getInstance().setForwardSlicing(false).build(this.repo);
+        HistorySlicer slicer = HistorySlicerBuilder.getInstance()
+            .build(this.repo);
 
         if (!allChanges) {
             slicer.setCommitRange(this.pastCommit, this.presentCommit);
@@ -151,10 +152,31 @@ public class Experiment2 {
         for (Component c : intersection) {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
-                List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
+                Map<String, Object> properties = slicer.trace(m.file_path, m.line_start, m.line_end);
                 List<Pair<String, String>> finalList = new LinkedList<>();
+                List<String> commits;
+                Object commitsObj = properties.get("commits");
+                int totalCommits = Integer.parseInt((String) properties.get("total_commits"));
+                int totalChurn = Integer.parseInt((String) properties.get("code_churn"));
+                
+                double averageChurn = 0;
+                if (totalCommits != 0) {
+                    averageChurn = (double) totalChurn / totalCommits;
+                }
 
-                for (String commit : list) {
+                m.addMetricResult("total_commits", totalCommits);
+                m.addMetricResult("code_churn", totalChurn);
+                m.addMetricResult("averageChurn", Double.toString(averageChurn));
+
+                if (commitsObj instanceof List<?>) {
+                    commits = (List<String>) commitsObj;
+                }
+                else {
+                    commits = new LinkedList<>();
+                }
+                
+
+                for (String commit : commits) {
                     try {
                         ObjectId oid = this.repo.resolve(commit);
                         RevCommit revCommit = this.repo.parseCommit(oid);
@@ -170,7 +192,7 @@ public class Experiment2 {
                 methodCommitMap.put(m, finalList);
 
                 // if (list.size() > 0)
-                logger.debug("{} - {}", m.asString(), list.size());
+                logger.debug("{} - {}", m.asString(), commits.size());
             }
         }
 
@@ -228,7 +250,6 @@ public class Experiment2 {
             }
 
             mJson.getAsJsonObject().add("commits", commitsJson);
-            mJson.getAsJsonObject().addProperty("commits-count", commits.size());
 
             methods.add(mJson);
         }

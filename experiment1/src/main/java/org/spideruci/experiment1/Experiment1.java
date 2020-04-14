@@ -130,16 +130,32 @@ public class Experiment1 {
 
         // Get the number of times a method was changed
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .setForwardSlicing(false)
             .build(this.repo);
 
         for (Component c : productionMethods) {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
-                List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
+                Map<String, Object> properties = slicer.trace(m.file_path, m.line_start, m.line_end);
                 List<Pair<String, String>> finalList = new LinkedList<>();
+                List<String> commits;
 
-                for (String commit : list) {
+                Object commitsObj = properties.get("commits");
+
+                String totalCommits = (String) properties.get("total_commits");
+                String totalChurn = (String) properties.get("code_churn");
+                double averageChurn = (double) Integer.parseInt(totalChurn) / Integer.parseInt(totalCommits);
+
+                m.addMetricResult("total_commits", totalCommits);
+                m.addMetricResult("code_churn", totalChurn);
+                m.addMetricResult("averageChurn", Double.toString(averageChurn));
+
+                if (commitsObj instanceof List<?>) {
+                    commits = (List<String>) commitsObj;
+                } else {
+                    commits = new LinkedList<>();
+                }
+
+                for (String commit : commits) {
                     try {
                         ObjectId oid = this.repo.resolve(commit);
                         RevCommit revCommit = this.repo.parseCommit(oid);
@@ -153,7 +169,7 @@ public class Experiment1 {
 
                 methodCommitMap.put(m, finalList);
                 
-                logger.debug("{} - {}", m.asString(), list.size());
+                logger.debug("{} - {}", m.asString(), commits.size());
             }
         }
 
@@ -207,7 +223,6 @@ public class Experiment1 {
             }
             
             mJson.getAsJsonObject().add("commits", commitsJson);
-            mJson.getAsJsonObject().addProperty("commits-count", commits.size());
 
             methods.add(mJson);
         }
