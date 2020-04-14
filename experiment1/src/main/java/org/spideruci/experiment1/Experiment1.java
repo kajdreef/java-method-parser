@@ -141,6 +141,14 @@ public class Experiment1 {
 
                 Object commitsObj = properties.get("commits");
 
+                String totalCommits = (String) properties.get("total_commits");
+                String totalChurn = (String) properties.get("code_churn");
+                double averageChurn = (double) Integer.parseInt(totalChurn) / Integer.parseInt(totalCommits);
+
+                m.addMetricResult("total_commits", totalCommits);
+                m.addMetricResult("code_churn", totalChurn);
+                m.addMetricResult("averageChurn", Double.toString(averageChurn));
+
                 if (commitsObj instanceof List<?>) {
                     commits = (List<String>) commitsObj;
                 } else {
@@ -215,7 +223,6 @@ public class Experiment1 {
             }
             
             mJson.getAsJsonObject().add("commits", commitsJson);
-            mJson.getAsJsonObject().addProperty("commits-count", commits.size());
 
             methods.add(mJson);
         }

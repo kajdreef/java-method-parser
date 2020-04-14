@@ -27,6 +27,6 @@ if __name__ == "__main__":
 
         print(content["sut"])
         for m in content["methods"]:
-            count.append(m["commits-count"])
+            count.append(m["metrics"]["total_commits"])
 
         histogram(count, "Historgram of number of changes to methods", "number of changes to a single method", "Frequency of x changes per method")

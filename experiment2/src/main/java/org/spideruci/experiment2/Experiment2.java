@@ -156,6 +156,17 @@ public class Experiment2 {
                 List<Pair<String, String>> finalList = new LinkedList<>();
                 List<String> commits;
                 Object commitsObj = properties.get("commits");
+                int totalCommits = Integer.parseInt((String) properties.get("total_commits"));
+                int totalChurn = Integer.parseInt((String) properties.get("code_churn"));
+                
+                double averageChurn = 0;
+                if (totalCommits != 0) {
+                    averageChurn = (double) totalChurn / totalCommits;
+                }
+
+                m.addMetricResult("total_commits", totalCommits);
+                m.addMetricResult("code_churn", totalChurn);
+                m.addMetricResult("averageChurn", Double.toString(averageChurn));
 
                 if (commitsObj instanceof List<?>) {
                     commits = (List<String>) commitsObj;
@@ -239,7 +250,6 @@ public class Experiment2 {
             }
 
             mJson.getAsJsonObject().add("commits", commitsJson);
-            mJson.getAsJsonObject().addProperty("commits-count", commits.size());
 
             methods.add(mJson);
         }

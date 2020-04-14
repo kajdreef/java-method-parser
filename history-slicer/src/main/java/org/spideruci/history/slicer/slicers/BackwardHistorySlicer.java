@@ -122,10 +122,12 @@ public class BackwardHistorySlicer extends HistorySlicer {
 
 				sb.append(line).append("\n");
 			}
-			diffs.add(sb.toString());
+			if (sb.length() > 0) {
+				diffs.add(sb.toString());
+			}
 
 			for (Metric metric : this.metrics) {
-				System.out.println(metric.getMetricType() + " - " + metric.compute(diffs));
+				logger.debug("{} - {}", metric.getMetricType(), metric.compute(diffs));
 				properties.put(metric.getMetricType(), metric.compute(diffs));
 			}
 
@@ -146,7 +148,6 @@ public class BackwardHistorySlicer extends HistorySlicer {
 		for (String diff: diffs) {
 			String commit_line = diff.split("\n")[0];
 			results.add(commit_line.split(" ")[1]);
-
 		}
 		return results;
 	}

@@ -12,6 +12,10 @@ public class CodeChurn extends Metric {
     public String compute(List<String> logDiffs) {
         int churn = 0;
 
+        if (logDiffs.size() <= 1) {
+            return Integer.toString(churn);
+        }
+
         for (String diff : logDiffs) {
             churn += churnInDiff(diff);
         }
