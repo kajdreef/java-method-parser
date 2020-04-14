@@ -1,7 +1,7 @@
 package org.spideruci.history.slicer.slicers;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.errors.RevisionSyntaxException;
@@ -29,6 +29,6 @@ public abstract class HistorySlicer {
         return this;
     }
 
-    abstract public List<String> trace(String filePath);
-    abstract public List<String> trace(String filePath, int start_line, int end_line);
+    abstract public Map<String, Object> trace(String filePath);
+    abstract public Map<String, Object> trace(String filePath, int start_line, int end_line);
 }

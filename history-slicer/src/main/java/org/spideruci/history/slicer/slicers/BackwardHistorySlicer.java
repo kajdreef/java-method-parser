@@ -4,9 +4,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -15,14 +18,24 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spideruci.history.slicer.metrics.CodeChurn;
+import org.spideruci.history.slicer.metrics.Metric;
+import org.spideruci.history.slicer.metrics.TotalCommits;
 
 public class BackwardHistorySlicer extends HistorySlicer {
 
 	private Logger logger = LoggerFactory.getLogger(BackwardHistorySlicer.class);
 
+	private List<Metric> metrics;
+
 	public BackwardHistorySlicer(Repository repo) {
 		super(repo);
 		logger.info("Backwards history slicer.");
+
+		this.metrics = new ArrayList<>();
+
+		this.metrics.add(new CodeChurn());
+		this.metrics.add(new TotalCommits());
 	}
 
 	private List<RevCommit> traceCommits(String filePath) {
@@ -44,28 +57,33 @@ public class BackwardHistorySlicer extends HistorySlicer {
 	}
 
 	@Override
-	public List<String> trace(String filePath) {
-		List<String> result = new LinkedList<>();
+	public Map<String, Object> trace(String filePath) {
+		Map<String, Object> properties = new HashMap<>();
+		List<String> commits = new LinkedList<>();
 
 		// Get all commits, and get the SHA of each commit
-		traceCommits(filePath).stream().forEach(f -> result.add(f.getName()));
+		traceCommits(filePath).stream().forEach(f -> {
+			commits.add(f.getName());
+		});
 
-		return result;
+		properties.put("commits", commits);
+
+		return properties;
 	}
 	private String parseGitTimestampToString(int timestamp) {
 		return new SimpleDateFormat("yyyy-MM-dd").format(new Date(timestamp * 1000L));
 	}
 
 	@Override
-	public List<String> trace(String filePath, int start_line, int end_line) {
-		List<String> result = new LinkedList<>();
+	public Map<String, Object> trace(String filePath, int start_line, int end_line) {
+		Map<String, Object> properties = new HashMap<>();
 
 		try {
 			String command = null;
 
 			if (this.pastCommit == null || this.presentCommit == null) {
 
-				command = String.format("git --no-pager log -L%d,%d:%s --oneline --no-patch ",
+				command = String.format("git log -L%d,%d:%s",
 						start_line, end_line, filePath);
 			}
 			else {
@@ -76,7 +94,7 @@ public class BackwardHistorySlicer extends HistorySlicer {
 				RevCommit present = repo.parseCommit(this.presentCommit);
 
 				command = String.format(
-						"git --no-pager log -L%d,%d:%s --oneline --no-patch --after=\'%s\' %s",
+						"git log -L%d,%d:%s --after=\'%s\' %s",
 						start_line, end_line, filePath, pastDate, present.getId().getName());
 			}
 
@@ -87,15 +105,49 @@ public class BackwardHistorySlicer extends HistorySlicer {
 			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			
-			while(reader.ready()) {
-				String line = reader.readLine();
-				result.add(line.split(" ")[0]);
+			StringBuilder sb = new StringBuilder();
+			String line;
+			List<String> diffs = new LinkedList<>();
+			
+			while((line = reader.readLine()) != null) {
+				
+				if (line.startsWith("commit ")) {
+					if (sb.length() > 0) {
+						diffs.add(sb.toString());
+					}
+					
+					// Start the next diff
+					sb = new StringBuilder();
+				}
+
+				sb.append(line).append("\n");
 			}
+			diffs.add(sb.toString());
+
+			for (Metric metric : this.metrics) {
+				System.out.println(metric.getMetricType() + " - " + metric.compute(diffs));
+				properties.put(metric.getMetricType(), metric.compute(diffs));
+			}
+
+			properties.put("commits", getCommitHashes(diffs));
+
+			return properties;
 
 		} catch (NoWorkTreeException | IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 		
-		return result;
+		return new HashMap<>();
+	}
+
+	private List<String> getCommitHashes(List<String> diffs) {
+		List<String> results = new LinkedList<>();
+
+		for (String diff: diffs) {
+			String commit_line = diff.split("\n")[0];
+			results.add(commit_line.split(" ")[1]);
+
+		}
+		return results;
 	}
 }

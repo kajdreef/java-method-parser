@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -61,11 +62,12 @@ class BackwardHistorySlicerTests {
         
         // When: tracing the evolution of the file and line range
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .setForwardSlicing(false)
             .build(this.repo);
 
-        List<String> commits = slicer.trace(this.file_1_path.toString());
+        Map<String, Object> properties = slicer.trace(this.file_1_path.toString());
 
+        List<?> commits = (List<?>) properties.get("commits");
+        
         // Then: two commits should touch those lines of code.
         Assertions.assertTrue(commits.size() == 2);
     }
@@ -77,13 +79,14 @@ class BackwardHistorySlicerTests {
 
         // When: tracing the evolution of the file and line range
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .setForwardSlicing(false)
             .build(repo);
 
-        List<String> commits = slicer.trace(this.file_1_path.toString(), start, end);
+        Map<String, Object> properties = slicer.trace(this.file_1_path.toString(), start, end);
+
+        int total_commits = Integer.parseInt((String) properties.get("total_commits"));
 
         // Then: three commits should touch those lines of code.
-        Assertions.assertTrue(commits.size() == 2);
+        Assertions.assertTrue(total_commits == 2);
 
     }
 
@@ -94,12 +97,13 @@ class BackwardHistorySlicerTests {
 
         // When: tracing the evolution of a single line
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .setForwardSlicing(false)
             .build(repo);
 
-        List<String> commits = slicer.trace(this.file_1_path.toString(), start, end);
+        Map<String, Object> properties = slicer.trace(this.file_1_path.toString(), start, end);
+
+        int total_commits = Integer.parseInt((String) properties.get("total_commits"));
 
         // Then: One commit should touch those lines of code.
-        Assertions.assertTrue(commits.size() == 1);
+        Assertions.assertTrue(total_commits == 1);
     }
 }

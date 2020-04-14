@@ -130,16 +130,24 @@ public class Experiment1 {
 
         // Get the number of times a method was changed
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .setForwardSlicing(false)
             .build(this.repo);
 
         for (Component c : productionMethods) {
             if (c instanceof MethodSignature) {
                 MethodSignature m = (MethodSignature) c;
-                List<String> list = slicer.trace(m.file_path, m.line_start, m.line_end);
+                Map<String, Object> properties = slicer.trace(m.file_path, m.line_start, m.line_end);
                 List<Pair<String, String>> finalList = new LinkedList<>();
+                List<String> commits;
 
-                for (String commit : list) {
+                Object commitsObj = properties.get("commits");
+
+                if (commitsObj instanceof List<?>) {
+                    commits = (List<String>) commitsObj;
+                } else {
+                    commits = new LinkedList<>();
+                }
+
+                for (String commit : commits) {
                     try {
                         ObjectId oid = this.repo.resolve(commit);
                         RevCommit revCommit = this.repo.parseCommit(oid);
@@ -153,7 +161,7 @@ public class Experiment1 {
 
                 methodCommitMap.put(m, finalList);
                 
-                logger.debug("{} - {}", m.asString(), list.size());
+                logger.debug("{} - {}", m.asString(), commits.size());
             }
         }
 
