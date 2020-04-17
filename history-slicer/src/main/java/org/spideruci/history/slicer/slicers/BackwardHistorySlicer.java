@@ -83,7 +83,7 @@ public class BackwardHistorySlicer extends HistorySlicer {
 
 			if (this.pastCommit == null || this.presentCommit == null) {
 
-				command = String.format("git log -L%d,%d:%s",
+				command = String.format("git log -L%d,%d:%s --no-patch",
 						start_line, end_line, filePath);
 			}
 			else {
