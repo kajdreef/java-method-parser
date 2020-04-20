@@ -217,10 +217,10 @@ public class Experiment2 {
 
         String outputFileName;
         if (this.allChanges) {
-            outputFileName = String.format("%s-allchanges-%s-%s.json", pathSplit[pathSplit.length - 1],
+            outputFileName = String.format("%s-allchanges.json", pathSplit[pathSplit.length - 1],
                     this.presentCommit, this.pastCommit);
         } else {
-            outputFileName = String.format("%s-%s-%s.json", pathSplit[pathSplit.length - 1], this.presentCommit,
+            outputFileName = String.format("%s.json", pathSplit[pathSplit.length - 1], this.presentCommit,
                     this.pastCommit);
         }
 
