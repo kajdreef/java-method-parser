@@ -164,16 +164,16 @@ public class Experiment2 {
             List<String> commits;
             Object commitsObj = properties.get("commits");
             int totalCommits = Integer.parseInt((String) properties.get("total_commits"));
-            int totalChurn = Integer.parseInt((String) properties.get("code_churn"));
+            // int totalChurn = Integer.parseInt((String) properties.get("code_churn"));
             
-            double averageChurn = 0;
-            if (totalCommits != 0) {
-                averageChurn = (double) totalChurn / totalCommits;
-            }
+            // double averageChurn = 0;
+            // if (totalCommits != 0) {
+            //     averageChurn = (double) totalChurn / totalCommits;
+            // }
 
-            m.addProperty("total_commits", totalCommits);
-            m.addProperty("code_churn", totalChurn);
-            m.addProperty("averageChurn", Double.toString(averageChurn));
+            m.addProperty("commits_in_window", totalCommits);
+            // m.addProperty("code_churn", totalChurn);
+            // m.addProperty("averageChurn", Double.toString(averageChurn));
 
             if (commitsObj instanceof List<?>) {
                 commits = (List<String>) commitsObj;
