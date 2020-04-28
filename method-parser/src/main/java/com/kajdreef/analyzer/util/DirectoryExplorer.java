@@ -1,4 +1,4 @@
-package org.spideruci.line.extractor.util;
+package com.kajdreef.analyzer.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,7 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class DirectoryExplorer {
-    private DirectoryExplorer(){}
+    private DirectoryExplorer() {
+    }
 
     public static List<File> get(String directory) {
 
