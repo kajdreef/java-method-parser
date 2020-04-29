@@ -91,6 +91,9 @@ public class Experiment2 {
         return this;
     }
 
+    /**
+     * set1 data is maintained and set2 to filter set1.
+     */
     public Set<Method> intersectionList(Set<Method> set1, Set<Method> set2) {
         return set1.stream().filter(set2::contains).collect(Collectors.toSet());
     }
@@ -138,7 +141,7 @@ public class Experiment2 {
                 .collect(Collectors.toSet());
 
         // Get the intersection (KEEP PRESENT COMMIT)
-        Set<Method> intersection = intersectionList(presentMethodSet, pastMethodSet);
+        Set<Method> intersection = intersectionList(pastMethodSet, presentMethodSet);
 
         logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(),
                 intersection.size());
