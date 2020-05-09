@@ -247,7 +247,14 @@ public class Experiment2 {
         try {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             Set<Method> result = Experiment2.run();
-            FileWriter writer = new FileWriter(cmd.getOptionValue("output") + "/test.json");
+
+            File report = new File(cmd.getOptionValue("output"));
+            File parentDir = report.getParentFile();
+
+            if (!parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            FileWriter writer = new FileWriter(report.getAbsolutePath());
             gson.toJson(result, writer);
         } catch (Exception e) {
             e.printStackTrace();
