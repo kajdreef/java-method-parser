@@ -30,15 +30,10 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
-import org.eclipse.jgit.api.errors.CheckoutConflictException;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.InvalidRefNameException;
-import org.eclipse.jgit.api.errors.RefAlreadyExistsException;
-import org.eclipse.jgit.api.errors.RefNotFoundException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -68,7 +63,6 @@ public class Experiment2 {
 
         outputPath = ".";
         properties = new HashMap<>();
-        methodCommitMap = new HashMap<>();
     }
 
     public Experiment2 setProject(String projectPath) {
@@ -82,177 +76,143 @@ public class Experiment2 {
             e.printStackTrace();
         }
 
+        properties.put("sut", this.projectPath);
         return this;
     }
 
     public Experiment2 setCommitRange(String pastCommit, String presentCommit) {
         this.pastCommit = pastCommit;
         this.presentCommit = presentCommit;
-        return this;
-    }
 
-    public Set<Method> intersectionList(Set<Method> set1, Set<Method> set2) {
-        return set1.stream().filter(set2::contains).collect(Collectors.toSet());
-    }
-
-    public Experiment2 run() throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException,
-            CheckoutConflictException, GitAPIException {
-        logger.info("Config - sut: {}, past-commit: {}, present-commit: {}", this.projectPath, this.pastCommit,
-                this.presentCommit);
-
-        properties.put("sut", this.projectPath);
         properties.put("present-commit", this.presentCommit);
         properties.put("past-commit", this.pastCommit);
 
-        // A function to filter out test code.
-        Predicate<Method> testFilter = m -> {
-            return !m.filePath.contains("test");
-        };
+        return this;
+    }
 
+    private Set<Method> intersectionList(Set<Method> set1, Set<Method> set2) {
+        return set1.stream().filter(set2::contains).collect(Collectors.toSet());
+    }
+
+    private Set<Method> parseProject(Predicate<Method> filter) {
         // Create the visitors we are going to use
         MethodSignatureVisitor ms_visitor = new MethodSignatureVisitor();
         MethodCyclomaticComplexityVisitor cc_visitor = new MethodCyclomaticComplexityVisitor();
 
+        Set<Method> methodSet = new Analyzer().addVisitor(ms_visitor).addVisitor(cc_visitor)
+                .analyzeDirectory(this.projectPath).getMethodSet();
 
+        if (filter != null) {
+            return methodSet.stream().filter(filter).collect(Collectors.toSet());
+        }
+
+        return methodSet;
+    }
+
+    private Set<Method> getMethodsInBothCommits(Predicate<Method> filter) throws GitAPIException {
+        Set<Method> result;
+        
         // Get methods that appear in both snapshots
         git.checkout().setName(this.pastCommit).setForced(true).call();
-        Set<Method> pastMethodSet = new Analyzer()
-            .addVisitor(ms_visitor)
-            .addVisitor(cc_visitor)
-            .analyzeDirectory(this.projectPath)
-            .getMethodSet()
-            .stream()
-                .filter(testFilter)
-                .collect(Collectors.toSet());
+        Set<Method> pastMethodSet = this.parseProject(filter);
 
         git.reset().setMode(ResetType.HARD).call();
 
         git.checkout().setName(this.presentCommit).setForced(true).call();
-        Set<Method> presentMethodSet = new Analyzer()
-            .addVisitor(ms_visitor)
-            .addVisitor(cc_visitor)
-            .analyzeDirectory(this.projectPath)
-            .getMethodSet()
-            .stream()
-                .filter(testFilter)
-                .collect(Collectors.toSet());
+        Set<Method> presentMethodSet = this.parseProject(filter);
 
         // Get the intersection (KEEP PRESENT COMMIT)
-        Set<Method> intersection = intersectionList(presentMethodSet, pastMethodSet);
+        result = intersectionList(presentMethodSet, pastMethodSet);
 
-        logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(),
-                intersection.size());
+        logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(), result.size());
 
-        assert intersection.size() <= presentMethodSet.size();
-        assert intersection.size() <= pastMethodSet.size();
+        assert result.size() <= presentMethodSet.size();
+        assert result.size() <= pastMethodSet.size();
 
-        if (intersection.size() == 0) {
+        if (result.size() == 0) {
             logger.info("No methods in common found between these two projects");
             System.exit(0);
         }
 
+        return result;
+    }
+
+    public List<Map<String, String>> getHistoryMethod(HistorySlicer slicer, Method m) {
+        Map<String, Object> properties = slicer.trace(m.filePath, m.lineStart, m.lineEnd);
+        List<Map<String, String>> finalList = new LinkedList<>();
+        List<String> commits;
+        Object commitsObj = properties.get("commits");
+        int totalCommits = Integer.parseInt((String) properties.get("total_commits"));
+
+        m.addProperty("total_commits", totalCommits);
+
+        if (commitsObj instanceof List<?>) {
+            commits = (List<String>) commitsObj;
+        }
+        else {
+            commits = new LinkedList<>();
+        }
+        
+        for (String commit : commits) {
+            try {
+                ObjectId oid = this.repo.resolve(commit);
+                RevCommit revCommit = this.repo.parseCommit(oid);
+                String date = new SimpleDateFormat("yyyy-MM-dd")
+                        .format(new Date(revCommit.getCommitTime() * 1000L));
+                
+                Map<String, String> commitData = new HashMap<>();
+                commitData.put("commit", commit);
+                commitData.put("date", date);
+
+                finalList.add(commitData);
+            } catch (IOException e) {
+
+                e.printStackTrace();
+            }
+        }
+        return finalList;
+    }
+
+    public Set<Method> run() throws GitAPIException {
+        logger.info(
+            "Config - sut: {}, past-commit: {}, present-commit: {}", 
+            this.projectPath,
+            this.pastCommit,
+            this.presentCommit
+        );
+
+        // A function to filter out test code.
+        // Predicate<Method> testFilter = m -> {
+        //     return !m.filePath.contains("test");
+        // };
+        Set<Method> intersection = getMethodsInBothCommits(null);
+
         // Get the number of times a method was changed
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
-            .build(this.repo);
+            .build(this.repo)
+            .setCommitRange(this.pastCommit, this.presentCommit);
+        
+        intersection.stream().forEach((m) -> {
+            m.addProperty("history", getHistoryMethod(slicer, m));
+        });
 
-        slicer.setCommitRange(this.pastCommit, this.presentCommit);
-
-        for (Method m : intersection) {
-
-            Map<String, Object> properties = slicer.trace(m.filePath, m.lineStart, m.lineEnd);
-            List<Pair<String, String>> finalList = new LinkedList<>();
-            List<String> commits;
-            Object commitsObj = properties.get("commits");
-            int totalCommits = Integer.parseInt((String) properties.get("total_commits"));
-            int totalChurn = Integer.parseInt((String) properties.get("code_churn"));
-            
-            double averageChurn = 0;
-            if (totalCommits != 0) {
-                averageChurn = (double) totalChurn / totalCommits;
+        intersection.stream().forEach((m) -> {
+            Object annotations = (List<String>) m.getProperty("annotations");
+            if (annotations instanceof List) {
+                List<String> annotationsList = (List<String>) m.getProperty("annotations");
+                m.addProperty("isTest", (m.filePath.contains("test") && annotationsList.contains("Test"))
+                        || m.methodDecl.contains(" test"));
             }
-
-            m.addProperty("total_commits", totalCommits);
-            m.addProperty("code_churn", totalChurn);
-            m.addProperty("averageChurn", Double.toString(averageChurn));
-
-            if (commitsObj instanceof List<?>) {
-                commits = (List<String>) commitsObj;
-            }
-            else {
-                commits = new LinkedList<>();
-            }
-            
-            for (String commit : commits) {
-                try {
-                    ObjectId oid = this.repo.resolve(commit);
-                    RevCommit revCommit = this.repo.parseCommit(oid);
-                    String date = new SimpleDateFormat("yyyy-MM-dd")
-                            .format(new Date(revCommit.getCommitTime() * 1000L));
-                    finalList.add(new ImmutablePair<String, String>(commit, date));
-                } catch (IOException e) {
-
-                    e.printStackTrace();
-                }
-            }
-
-            methodCommitMap.put(m, finalList);
-        }
+        });
 
         git.reset().setMode(ResetType.HARD).call();
         git.checkout().setName("master").call();
 
-        return this;
+        return intersection;
     }
 
     public Experiment2 setOutputPath(String outputPath) {
         this.outputPath = outputPath;
-        return this;
-    }
-
-    public Experiment2 report() {
-        File report = new File(this.outputPath);
-        File parentDir = report.getParentFile();
-        if (!parentDir.exists()) {
-            parentDir.mkdirs();
-        }
-
-        JsonObject content = new JsonObject();
-
-        for (Entry<String, String> entry : properties.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-
-            content.addProperty(key, value);
-        }
-
-        JsonArray methods = new JsonArray();
-        for (Entry<Method, List<Pair<String, String>>> entry : methodCommitMap.entrySet()) {
-            Method m = entry.getKey();
-            List<Pair<String, String>> commits = entry.getValue();
-            JsonElement mJson = gson.toJsonTree(m);
-            JsonArray commitsJson = new JsonArray();
-
-            for (Pair<String, String> commit : commits) {
-                JsonObject commitJson = new JsonObject();
-                commitJson.addProperty("SHA1", commit.getLeft());
-                commitJson.addProperty("date", commit.getRight());
-                commitsJson.add(commitJson);
-            }
-
-            mJson.getAsJsonObject().add("commits", commitsJson);
-
-            methods.add(mJson);
-        }
-        content.add("methods", methods);
-
-        try {
-            FileWriter writer = new FileWriter(report);
-            gson.toJson(content, writer);
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         return this;
     }
 
@@ -270,27 +230,22 @@ public class Experiment2 {
         // Initialize the experiment and set all the parameters
         Experiment2 Experiment2 = new Experiment2();
 
-        if (cmd.hasOption("sut") && cmd.hasOption("past") && cmd.hasOption("present")) {
+        if (cmd.hasOption("sut") && cmd.hasOption("past") && cmd.hasOption("present") && cmd.hasOption("output")) {
             Experiment2.setProject(cmd.getOptionValue("sut"));
             Experiment2.setCommitRange(cmd.getOptionValue("past"), cmd.getOptionValue("present"));
+            Experiment2.setOutputPath(cmd.getOptionValue("output"));
         } else {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("CLITester", options);
             System.exit(64);
         }
 
-
-        if (cmd.hasOption("output")) {
-            Experiment2.setOutputPath(cmd.getOptionValue("output"));
-        } else {
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("CLITester", options);
-            System.exit(1);
-        }
-
         // Run the experiment
         try {
-            Experiment2.run().report();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            Set<Method> result = Experiment2.run();
+            FileWriter writer = new FileWriter(cmd.getOptionValue("output") + "/test.json");
+            gson.toJson(result, writer);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
