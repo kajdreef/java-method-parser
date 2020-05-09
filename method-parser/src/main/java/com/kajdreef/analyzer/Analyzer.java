@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ast.CompilationUnit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -44,6 +45,8 @@ public class Analyzer {
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+        } catch(ParseProblemException e) {
+            System.out.println("Parsing error in file: " + file.toString());
         }
     }
 

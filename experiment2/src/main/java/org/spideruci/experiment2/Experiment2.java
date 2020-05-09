@@ -90,7 +90,10 @@ public class Experiment2 {
         return this;
     }
 
-    private Set<Method> intersectionList(Set<Method> set1, Set<Method> set2) {
+    /**
+     * set1 data is maintained and set2 to filter set1.
+     */
+    public Set<Method> intersectionList(Set<Method> set1, Set<Method> set2) {
         return set1.stream().filter(set2::contains).collect(Collectors.toSet());
     }
 
@@ -144,7 +147,7 @@ public class Experiment2 {
         Object commitsObj = properties.get("commits");
         int totalCommits = Integer.parseInt((String) properties.get("total_commits"));
 
-        m.addProperty("total_commits", totalCommits);
+        m.addProperty("commits_in_window", totalCommits);
 
         if (commitsObj instanceof List<?>) {
             commits = (List<String>) commitsObj;
