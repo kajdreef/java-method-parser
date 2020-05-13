@@ -21,7 +21,7 @@ public class MethodCyclomaticComplexityVisitor extends AbstractMethodVisitor {
     }
 
     private void updateMethodComplexity(MethodSignatures signatures, int amount) {
-        Method m = signatures.get(methodDecl, className, packageName, filePath);
+        Method m = signatures.get(methodDecl, methodName, className, packageName, filePath);
 
         int new_complexity = amount;
 
@@ -43,6 +43,7 @@ public class MethodCyclomaticComplexityVisitor extends AbstractMethodVisitor {
     public void visit(MethodDeclaration method, MethodSignatures signatures) {
         
         this.methodDecl = method.getDeclarationAsString(false, false, false);
+        this.methodName = method.getName().getIdentifier();
         this.updateMethodComplexity(signatures, 1);
         
         super.visit(method, signatures);

@@ -16,14 +16,14 @@ public class MethodSignatures {
         methodList.put(m.hashCode(), m);
     }
 
-    public Method get(String methodDecl, String className, String packageName, String filePath) {
-        int key = Objects.hash(methodDecl, className, packageName, filePath);
+    public Method get(String methodDecl, String methodName, String className, String packageName, String filePath) {
+        int key = Objects.hash(methodDecl, methodName, className, packageName, filePath);
 
         if (methodList.containsKey(key)) {
             return methodList.get(key);
         }
         
-        return new Method(methodDecl, className, packageName, filePath, -1, -1);
+        return new Method(methodDecl, methodName, className, packageName, filePath, -1, -1);
     }
 
     public Map<Integer, Method> getMap() {

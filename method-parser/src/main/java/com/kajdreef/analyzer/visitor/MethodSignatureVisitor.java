@@ -17,11 +17,12 @@ public class MethodSignatureVisitor extends AbstractMethodVisitor {
     @Override
     public void visit(MethodDeclaration method, MethodSignatures signatures) {
         String methodDecl = method.getDeclarationAsString(false, false, false);
+        String methodName = method.getName().getIdentifier();
 
         int start_line = method.getRange().get().begin.line,
             end_line = method.getRange().get().end.line;
 
-        Method methodInfo = signatures.get(methodDecl, className, packageName, filePath);
+        Method methodInfo = signatures.get(methodDecl, methodName, className, packageName, filePath);
         methodInfo.setLineRange(start_line, end_line);
 
         List<String> annotations = method.getAnnotations().stream().map(annotation -> annotation.getNameAsString())

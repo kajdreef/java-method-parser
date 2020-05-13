@@ -10,6 +10,7 @@ import com.kajdreef.analyzer.metrics.MethodSignatures;
 
 public abstract class AbstractMethodVisitor extends VoidVisitorAdapter<MethodSignatures> {
     protected String methodDecl = "";
+    protected String methodName = "";
     protected String className = "";
     protected String packageName = "";
     protected String filePath = "";

@@ -7,6 +7,7 @@ import java.util.HashMap;
 
 public class Method {
     public final String methodDecl;
+    public final String methodName;
     public final String className;
     public final String packageName;
     public final String filePath;
@@ -15,8 +16,9 @@ public class Method {
 
     private Map<String, Object> properties;
 
-    public Method(String methodDecl, String className, String packageName, String filePath, int lineStart, int lineEnd) {
+    public Method(String methodDecl, String methodName, String className, String packageName, String filePath, int lineStart, int lineEnd) {
         this.methodDecl = methodDecl;
+        this.methodName = methodName;
         this.className = className;
         this.packageName = packageName;
         this.filePath = filePath;
@@ -54,6 +56,7 @@ public class Method {
         Method otherMethod = (Method) other;
 
         return otherMethod.methodDecl.equals(this.methodDecl) &&
+                otherMethod.methodName.equals(this.methodName)&&
                 otherMethod.className.equals(this.className) &&
                 otherMethod.packageName.equals(this.packageName) &&
                 otherMethod.filePath.equals(this.filePath);
@@ -61,6 +64,6 @@ public class Method {
 
     @Override
     public int hashCode() {
-        return Objects.hash(methodDecl, className, packageName, filePath);
+        return Objects.hash(methodDecl, methodName, className, packageName, filePath);
     }
 }
