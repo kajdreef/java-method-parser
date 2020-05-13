@@ -4,11 +4,10 @@ plugins {
 
 dependencies {
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.7.0.202003110725-r'
-    implementation 'io.reflectoring.diffparser:diffparser:1.4'
     implementation project(":history-slicer")
     implementation project(":method-parser")
 }
 
 application {
-    mainClassName = 'org.spideruci.experiment2.Experiment2'
+    mainClassName = 'org.spideruci.experiment.Experiment'
 }

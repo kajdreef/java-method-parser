@@ -18,7 +18,6 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spideruci.history.slicer.metrics.CodeChurn;
 import org.spideruci.history.slicer.metrics.Metric;
 import org.spideruci.history.slicer.metrics.TotalCommits;
 
@@ -33,8 +32,6 @@ public class BackwardHistorySlicer extends HistorySlicer {
 		logger.info("Backwards history slicer.");
 
 		this.metrics = new ArrayList<>();
-
-		this.metrics.add(new CodeChurn());
 		this.metrics.add(new TotalCommits());
 	}
 
@@ -53,7 +50,6 @@ public class BackwardHistorySlicer extends HistorySlicer {
 			e.printStackTrace();
 		}
 		return result;
-
 	}
 
 	@Override
