@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -65,10 +66,22 @@ public class Experiment {
     }
 
     /**
-     * set1 data is maintained and set2 to filter set1.
+     * pastSet data is maintained and presentSet to filter set1.
      */
-    private Set<Method> intersectionList(Set<Method> set1, Set<Method> set2) {
-        return set1.stream().filter(set2::contains).collect(Collectors.toSet());
+    private Set<Method> intersectionList(Set<Method> pastSet, Set<Method> presentSet) {
+        Set<Method> result = new HashSet<>();
+
+        for (Method presentMethod : presentSet) {
+            for (Method oldMethod : pastSet) {
+                if (presentMethod.equals(oldMethod)) {
+                    presentMethod.addProperty("old-start-line", oldMethod.lineStart);
+                    presentMethod.addProperty("old-end-line", oldMethod.lineEnd);
+                    result.add(presentMethod);
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     private Set<Method> parseProject(Predicate<Method> filter) {
@@ -98,8 +111,8 @@ public class Experiment {
         git.checkout().setName(this.presentCommit).setForced(true).call();
         Set<Method> presentMethodSet = this.parseProject(filter);
 
-        // Get the intersection (KEEP PRESENT COMMIT)
-        result = intersectionList(presentMethodSet, pastMethodSet);
+        // Get the intersection (KEEP PAST COMMIT, so we can do 
+        result = intersectionList(pastMethodSet, presentMethodSet);
 
         logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(),
                 result.size());
@@ -160,7 +173,9 @@ public class Experiment {
         return finalList;
     }
 
-    public Set<Method> run() throws GitAPIException {
+    public Map<String, Set<Method>> run() throws GitAPIException {
+        Map<String, Set<Method>> result = new HashMap<>();
+
         logger.info(
             "Config - sut: {}, past-commit: {}, present-commit: {}", 
             this.projectPath,
@@ -183,19 +198,35 @@ public class Experiment {
             m.addProperty("history", getHistoryMethod(slicer, m));
         });
 
-        intersection.stream().forEach((m) -> {
-            Object annotations = (List<String>) m.getProperty("annotations");
-            if (annotations instanceof List) {
-                List<String> annotationsList = (List<String>) m.getProperty("annotations");
-                m.addProperty("isTest", (m.filePath.contains("test") && annotationsList.contains("Test"))
-                        || m.methodDecl.contains(" test"));
-            }
-        });
+        Set<Method> prodMethods = intersection.stream()
+            .filter((m) -> !m.filePath.contains("test"))
+            .collect(Collectors.toSet());
+
+        Set<Method> testMethods = intersection.stream()
+            .filter((m) -> m.filePath.contains("test"))
+            .map( m -> {
+                Object annotations = (List<String>) m.getProperty("annotations");
+                if (annotations instanceof List) {
+                    List<String> annotationsList = (List<String>) m.getProperty("annotations");
+                    m.addProperty("isTest", (m.filePath.contains("test") && annotationsList.contains("Test"))
+                            || m.methodDecl.contains(" test"));
+                } else {
+                    m.addProperty("isTest", false);
+                }
+                return m;
+            })
+            .collect(Collectors.toSet());
+
+        intersection.stream();
+
+        result.put("test-methods", testMethods);
+        result.put("prod-methods", prodMethods);
+        
 
         git.reset().setMode(ResetType.HARD).call();
         git.checkout().setName("master").call();
 
-        return intersection;
+        return result;
     }
 
     public static void main(String[] args) throws ParseException {
