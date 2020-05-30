@@ -3,7 +3,6 @@
 project_path=$1
 output_path=$2
 epoch=$3
-allchanges=$4
 
 $(cd $project_path && git reset --hard master > /dev/null 2>&1 && git clean -f)
 present_sha=$(cd ${project_path} && git log --format="%H" -n 1)
