@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +22,7 @@ import com.kajdreef.analyzer.Analyzer;
 import com.kajdreef.analyzer.visitor.MethodCyclomaticComplexityVisitor;
 import com.kajdreef.analyzer.visitor.MethodSignatureVisitor;
 import com.kajdreef.analyzer.visitor.Components.Method;
+import com.kajdreef.analyzer.visitor.Components.MethodVersion;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -28,6 +30,8 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -66,16 +70,17 @@ public class Experiment {
     }
 
     /**
-     * pastSet data is maintained and presentSet to filter set1.
+     * New all versions are added to presentMethod.
      */
     private Set<Method> intersectionList(Set<Method> pastSet, Set<Method> presentSet) {
         Set<Method> result = new HashSet<>();
 
         for (Method presentMethod : presentSet) {
-            for (Method oldMethod : pastSet) {
-                if (presentMethod.equals(oldMethod)) {
-                    presentMethod.addProperty("old-start-line", oldMethod.lineStart);
-                    presentMethod.addProperty("old-end-line", oldMethod.lineEnd);
+            for (Method pastMethod : pastSet) {
+                if (presentMethod.equals(pastMethod)) {
+                    for (MethodVersion version : pastMethod.versions) {
+                        presentMethod.addVersion(version);
+                    }
                     result.add(presentMethod);
                     break;
                 }
@@ -89,7 +94,9 @@ public class Experiment {
         MethodSignatureVisitor ms_visitor = new MethodSignatureVisitor();
         MethodCyclomaticComplexityVisitor cc_visitor = new MethodCyclomaticComplexityVisitor();
 
-        Set<Method> methodSet = new Analyzer().addVisitor(ms_visitor).addVisitor(cc_visitor)
+        Set<Method> methodSet = new Analyzer()
+            .addVisitor(ms_visitor)
+            .addVisitor(cc_visitor)
                 .analyzeDirectory(this.projectPath).getMethodSet();
 
         if (filter != null) {
@@ -106,12 +113,29 @@ public class Experiment {
         git.checkout().setName(this.pastCommit).setForced(true).call();
         Set<Method> pastMethodSet = this.parseProject(filter);
 
+        pastMethodSet.stream().forEach((m) -> {
+            Optional<MethodVersion> optionalVersion = m.getVersion(0);
+            if (optionalVersion.isPresent()) {
+                MethodVersion version = optionalVersion.get();
+                version.commitId = this.pastCommit;
+                version.commitDate = getDateFromCommit(this.pastCommit).get();
+            }
+        });
+
         git.reset().setMode(ResetType.HARD).call();
 
         git.checkout().setName(this.presentCommit).setForced(true).call();
         Set<Method> presentMethodSet = this.parseProject(filter);
 
-        // Get the intersection (KEEP PAST COMMIT, so we can do 
+        presentMethodSet.stream().forEach((m) -> {
+            Optional<MethodVersion> optionalVersion = m.getVersion(0);
+            if (optionalVersion.isPresent()) {
+                MethodVersion version = optionalVersion.get();
+                version.commitId = this.presentCommit;
+                version.commitDate = getDateFromCommit(this.presentCommit).get();
+            }
+        });
+
         result = intersectionList(pastMethodSet, presentMethodSet);
 
         logger.info("past: {}, present: {}, intersection: {}", pastMethodSet.size(), presentMethodSet.size(),
@@ -132,7 +156,7 @@ public class Experiment {
         try {
             ObjectId oid = this.repo.resolve(commit);
             RevCommit revCommit = this.repo.parseCommit(oid);
-            String date = new SimpleDateFormat("yyyy-MM-dd")
+            String date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'")
                 .format(new Date(revCommit.getCommitTime() * 1000L));
             
             return Optional.of(date);
@@ -144,13 +168,10 @@ public class Experiment {
     }
 
     public List<Map<String, String>> getHistoryMethod(HistorySlicer slicer, Method m) {
-        Map<String, Object> historyProperties = slicer.trace(m.filePath, m.lineStart, m.lineEnd);
+        MethodVersion version = m.getVersion(0).get();
+        Map<String, Object> historyProperties = slicer.trace(m.filePath, version.lineStart, version.lineEnd);
         List<Map<String, String>> finalList = new LinkedList<>();
         List<String> commits = new LinkedList<>();
-
-        
-        int totalCommits = Integer.parseInt((String) historyProperties.get("total_commits"));
-        m.addProperty("commits_in_window", totalCommits);
 
         Object commitsObj = historyProperties.get("commits");
         if (commitsObj instanceof List<?>) {
@@ -195,7 +216,8 @@ public class Experiment {
             .setCommitRange(this.pastCommit, this.presentCommit);
         
         intersection.stream().forEach((m) -> {
-            m.addProperty("history", getHistoryMethod(slicer, m));
+            // m.getRight() == present method
+            m.setHistory(getHistoryMethod(slicer, m));
         });
 
         Set<Method> prodMethods = intersection.stream()
@@ -204,20 +226,9 @@ public class Experiment {
 
         Set<Method> testMethods = intersection.stream()
             .filter((m) -> m.filePath.contains("test"))
-            .map( m -> {
-                Object annotations = (List<String>) m.getProperty("annotations");
-                if (annotations instanceof List) {
-                    List<String> annotationsList = (List<String>) m.getProperty("annotations");
-                    m.addProperty("isTest", (m.filePath.contains("test") && annotationsList.contains("Test"))
-                            || m.methodDecl.contains(" test"));
-                } else {
-                    m.addProperty("isTest", false);
-                }
-                return m;
-            })
             .collect(Collectors.toSet());
 
-        intersection.stream();
+        
 
         result.put("test-methods", testMethods);
         result.put("prod-methods", prodMethods);

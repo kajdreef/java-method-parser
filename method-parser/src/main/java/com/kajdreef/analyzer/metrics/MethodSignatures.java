@@ -23,7 +23,7 @@ public class MethodSignatures {
             return methodList.get(key);
         }
         
-        return new Method(methodDecl, methodName, className, packageName, filePath, -1, -1);
+        return new Method(methodDecl, methodName, className, packageName, filePath);
     }
 
     public Map<Integer, Method> getMap() {

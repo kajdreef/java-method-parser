@@ -1,8 +1,10 @@
 package com.kajdreef.analyzer.visitor.Components;
 
-import java.util.Map;
 import java.util.Objects;
-import java.util.HashMap;
+import java.util.Optional;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 
 public class Method {
@@ -11,36 +13,38 @@ public class Method {
     public final String className;
     public final String packageName;
     public final String filePath;
-    public int lineStart;
-    public int lineEnd;
+    
+    public List<Map<String, String>> history;
+    public List<MethodVersion> versions;
 
-    private Map<String, Object> properties;
-
-    public Method(String methodDecl, String methodName, String className, String packageName, String filePath, int lineStart, int lineEnd) {
+    public Method(String methodDecl, String methodName, String className, String packageName, String filePath) {
         this.methodDecl = methodDecl;
         this.methodName = methodName;
         this.className = className;
         this.packageName = packageName;
         this.filePath = filePath;
-        this.lineStart = lineStart;
-        this.lineEnd = lineEnd;
-        this.properties = new HashMap<>();
+        this.history = new LinkedList<>();
+        this.versions = new LinkedList<>();
     }
 
-    public void setLineRange(int start, int end) {
-        this.lineStart = start;
-        this.lineEnd = end;
+    public void addVersion(MethodVersion version) {
+        this.versions.add(version);
     }
 
-    public void addProperty(String key, Object value) {
-        this.properties.put(key, value);
-    }
-
-    public Object getProperty(String key) {
-        if (this.properties.containsKey(key)) {
-            return this.properties.get(key);
+    public Optional<MethodVersion> getVersion(int versionIndex) {
+        if (versionIndex < versions.size() && versionIndex >= 0) {
+            return Optional.of(versions.get(versionIndex));
         }
-        return null;
+
+        return Optional.empty();
+    }
+
+    public void setHistory(List<Map<String, String>> history) {
+        this.history = history;
+    }
+
+    public int getNumberOfVersions() {
+        return versions.size();
     }
 
     @Override
@@ -67,3 +71,4 @@ public class Method {
         return Objects.hash(methodDecl, methodName, className, packageName, filePath);
     }
 }
+

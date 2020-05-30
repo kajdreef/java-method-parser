@@ -9,6 +9,7 @@ import com.kajdreef.analyzer.metrics.MethodSignatures;
 
 
 public abstract class AbstractMethodVisitor extends VoidVisitorAdapter<MethodSignatures> {
+    protected static String COMMIT_ID = "1";
     protected String methodDecl = "";
     protected String methodName = "";
     protected String className = "";
