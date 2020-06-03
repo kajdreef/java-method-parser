@@ -1,5 +1,7 @@
 package com.kajdreef.analyzer.visitor;
 
+import java.util.Optional;
+
 import com.github.javaparser.ast.body.MethodDeclaration;
 
 import com.github.javaparser.ast.stmt.ForEachStmt;
@@ -11,6 +13,7 @@ import com.github.javaparser.ast.stmt.SwitchStmt;
 
 import com.kajdreef.analyzer.metrics.*;
 import com.kajdreef.analyzer.visitor.Components.Method;
+import com.kajdreef.analyzer.visitor.Components.MethodVersion;
 
 public class MethodCyclomaticComplexityVisitor extends AbstractMethodVisitor {
 
@@ -24,24 +27,21 @@ public class MethodCyclomaticComplexityVisitor extends AbstractMethodVisitor {
         Method m = signatures.get(methodDecl, methodName, className, packageName, filePath);
 
         int new_complexity = amount;
-
-        Object curr_complexity = m.getProperty(CYCLOMATIC_ID);
-        if (curr_complexity != null) {
-            new_complexity += (int) curr_complexity;
+        Optional<MethodVersion> optionalVersion = m.getVersion(m.getNumberOfVersions() - 1);
+        
+        if (optionalVersion.isPresent()) {
+            MethodVersion version = optionalVersion.get();
+            Optional<Object> currComplexity = version.getProperty(CYCLOMATIC_ID);
+            if (currComplexity.isPresent()) {
+                new_complexity += (int) currComplexity.get();
+            }
+            version.setProperty(CYCLOMATIC_ID, new_complexity);
+            signatures.add(m);
         }
-        
-        m.addProperty(CYCLOMATIC_ID, new_complexity);
-
-        signatures.add(m);
     }
-
-    // public void visit(ConstructorDeclaration method, MethodSignatures signatures){
-        
-    // }
 
     @Override
     public void visit(MethodDeclaration method, MethodSignatures signatures) {
-        
         this.methodDecl = method.getDeclarationAsString(false, false, false);
         this.methodName = method.getName().getIdentifier();
         this.updateMethodComplexity(signatures, 1);
@@ -51,6 +51,7 @@ public class MethodCyclomaticComplexityVisitor extends AbstractMethodVisitor {
 
     @Override
     public void visit(ForEachStmt statement, MethodSignatures signatures) {
+        
         this.updateMethodComplexity(signatures, 1);
 
         super.visit(statement, signatures);
@@ -58,6 +59,7 @@ public class MethodCyclomaticComplexityVisitor extends AbstractMethodVisitor {
 
     @Override
     public void visit(ForStmt statement, MethodSignatures signatures) {
+        
         this.updateMethodComplexity(signatures, 1);
 
         super.visit(statement, signatures);

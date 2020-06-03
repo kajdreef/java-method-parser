@@ -3,10 +3,10 @@ package com.kajdreef.analyzer.visitor;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.kajdreef.analyzer.metrics.MethodSignatures;
 import com.kajdreef.analyzer.visitor.Components.Method;
+import com.kajdreef.analyzer.visitor.Components.MethodVersion;
 
 public class MethodSignatureVisitor extends AbstractMethodVisitor {
 
@@ -23,15 +23,15 @@ public class MethodSignatureVisitor extends AbstractMethodVisitor {
             end_line = method.getRange().get().end.line;
 
         Method methodInfo = signatures.get(methodDecl, methodName, className, packageName, filePath);
-        methodInfo.setLineRange(start_line, end_line);
-
+        
         List<String> annotations = method.getAnnotations().stream().map(annotation -> annotation.getNameAsString())
                 .collect(Collectors.toList());
 
-        methodInfo.addProperty("access_modifier", method.getAccessSpecifier().toString());
-        methodInfo.addProperty("method_size", end_line - start_line + 1);
-        methodInfo.addProperty("annotations", annotations);
-        
+        MethodVersion version = new MethodVersion(start_line, end_line);
+        version.setProperty("access_modifier", method.getAccessSpecifier().toString());
+        version.setProperty("method_size", end_line - start_line + 1);
+        version.setProperty("annotations", annotations);
+        methodInfo.addVersion(version);
         signatures.add(methodInfo);
 
         super.visit(method, signatures);
