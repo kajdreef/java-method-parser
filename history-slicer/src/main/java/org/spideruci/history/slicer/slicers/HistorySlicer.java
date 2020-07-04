@@ -23,9 +23,10 @@ public abstract class HistorySlicer {
             this.pastCommit = this.repo.resolve(pastCommit);
             this.presentCommit = this.repo.resolve(presentCommit);
             
-        } catch (RevisionSyntaxException | IOException e) {
-            e.printStackTrace();
-        }
+        } catch (RevisionSyntaxException | NullPointerException | IOException e) {
+            System.out.println("[Commit not found] present:" +  this.presentCommit + " - past: " + this.pastCommit);
+        } 
+
         return this;
     }
 
