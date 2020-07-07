@@ -30,8 +30,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.tuple.MutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -106,35 +104,33 @@ public class Experiment {
         return methodSet;
     }
 
-    private Set<Method> getMethodsInBothCommits(Predicate<Method> filter) throws GitAPIException {
-        Set<Method> result;
+    private Set<Method> getMethods(Predicate<Method> filter, String commitSHA) throws GitAPIException {
+        if (commitSHA != null) {
+            git.checkout().setName(commitSHA).setForced(true).call();
+        }
 
-        // Get methods that appear in both snapshots
-        git.checkout().setName(this.pastCommit).setForced(true).call();
-        Set<Method> pastMethodSet = this.parseProject(filter);
+        Set<Method> methods = this.parseProject(filter);
 
-        pastMethodSet.stream().forEach((m) -> {
+        methods.stream().forEach((m) -> {
             Optional<MethodVersion> optionalVersion = m.getVersion(0);
-            if (optionalVersion.isPresent()) {
+            if (optionalVersion.isPresent() && commitSHA != null) {
                 MethodVersion version = optionalVersion.get();
-                version.commitId = this.pastCommit;
-                version.commitDate = getDateFromCommit(this.pastCommit).get();
+                version.commitId = commitSHA;
+                version.commitDate = getDateFromCommit(commitSHA).get();
             }
         });
 
         git.reset().setMode(ResetType.HARD).call();
 
-        git.checkout().setName(this.presentCommit).setForced(true).call();
-        Set<Method> presentMethodSet = this.parseProject(filter);
+        return methods;
+    }
 
-        presentMethodSet.stream().forEach((m) -> {
-            Optional<MethodVersion> optionalVersion = m.getVersion(0);
-            if (optionalVersion.isPresent()) {
-                MethodVersion version = optionalVersion.get();
-                version.commitId = this.presentCommit;
-                version.commitDate = getDateFromCommit(this.presentCommit).get();
-            }
-        });
+    private Set<Method> getMethodsInBothCommits(Predicate<Method> filter) throws GitAPIException {
+        Set<Method> result;
+
+        // Get methods that appear in both snapshots
+        Set<Method> pastMethodSet = getMethods(null, this.pastCommit);
+        Set<Method> presentMethodSet = getMethods(null, this.presentCommit);
 
         result = intersectionList(pastMethodSet, presentMethodSet);
 
@@ -208,35 +204,41 @@ public class Experiment {
         // Predicate<Method> testFilter = m -> {
         //     return !m.filePath.contains("test");
         // };
-        Set<Method> intersection = getMethodsInBothCommits(null);
+        Set<Method> methodSet;
+        if (this.pastCommit == null) {
+            methodSet = getMethods(null, this.presentCommit);
+        }
+        else {
+            methodSet = getMethodsInBothCommits(null);
+        }
 
         // Get the number of times a method was changed
         HistorySlicer slicer = HistorySlicerBuilder.getInstance()
             .build(this.repo)
             .setCommitRange(this.pastCommit, this.presentCommit);
-        
-        intersection.stream().forEach((m) -> {
+
+        methodSet.stream().forEach((m) -> {
             // m.getRight() == present method
             m.setHistory(getHistoryMethod(slicer, m));
         });
 
-        Set<Method> prodMethods = intersection.stream()
+        Set<Method> prodMethods = methodSet.stream()
             .filter((m) -> !m.filePath.contains("test"))
             .collect(Collectors.toSet());
 
-        Set<Method> testMethods = intersection.stream()
+        Set<Method> testMethods = methodSet.stream()
             .filter((m) -> m.filePath.contains("test"))
             .collect(Collectors.toSet());
 
-        
-
         result.put("test-methods", testMethods);
         result.put("prod-methods", prodMethods);
-        
 
         git.reset().setMode(ResetType.HARD).call();
-        git.checkout().setName("master").call();
-
+        if (this.pastCommit != null || this.presentCommit != null){
+            git.checkout().setName("master").call();
+        }
+        System.out.println(testMethods.size());
+        System.out.println(prodMethods.size());
         return result;
     }
 
@@ -245,39 +247,63 @@ public class Experiment {
         // Create command line interface 
         Options options = new Options();
         options.addOption("s", "sut", true, "Path to the system under study.");
+        options.addOption("o", "output", true, "Output file path");
+
+        // Optional
         options.addOption("pa", "past", true, "Starting commit from which the experiment starts.");
         options.addOption("pr", "present", true, "Starting commit from which the experiment starts.");
-        options.addOption("o", "output", true, "Output file path");
+        
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
 
         // Check if all parameters were set
-        if (! cmd.hasOption("sut") && cmd.hasOption("past") && cmd.hasOption("present") && cmd.hasOption("output")) {
+        if (! cmd.hasOption("sut") && cmd.hasOption("past")) {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("CLITester", options);
             System.exit(64);
         }
+
         // Initialize the experiment and set all the parameters
-        Experiment experiment = new Experiment(
-            cmd.getOptionValue("sut"),
-            cmd.getOptionValue("past"),
-            cmd.getOptionValue("present")
-        );
+        Experiment experiment;
+        if (cmd.hasOption("present") && cmd.hasOption("output")) {
+            experiment = new Experiment(
+                cmd.getOptionValue("sut"),
+                cmd.getOptionValue("past"),
+                cmd.getOptionValue("present")
+            );
+        }
+        else {
+            experiment = new Experiment(
+                cmd.getOptionValue("sut"),
+                null,
+                null
+            );
+        }
+        Map<String, Set<Method>> experiment_data;
+        try {
+            experiment_data = experiment.run();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+            return;
+        }
 
         // Create output map (and set some additional data about experiment)
-        Map<String, Object> result = new HashMap<>();
-        result.put("sut", cmd.getOptionValue("sut"));
+        Map<String, Object> jsonOutput = new HashMap<>();
+        jsonOutput.put("sut", cmd.getOptionValue("sut"));
 
-        result.put("past-commit", cmd.getOptionValue("past"));
-        result.put("past-commit-date", experiment.getDateFromCommit(cmd.getOptionValue("past")).get());
+        if (cmd.hasOption("past") && cmd.hasOption("present")) {
+            jsonOutput.put("past-commit", cmd.getOptionValue("past"));
+            jsonOutput.put("past-commit-date", experiment.getDateFromCommit(cmd.getOptionValue("past")).get());
 
-        result.put("present-commit", cmd.getOptionValue("present"));
-        result.put("present-commit-date", experiment.getDateFromCommit(cmd.getOptionValue("present")).get());
-
-        // Run the experiment
+            jsonOutput.put("present-commit", cmd.getOptionValue("present"));
+            jsonOutput.put("present-commit-date", experiment.getDateFromCommit(cmd.getOptionValue("present")).get());
+        }
+        
         try {
-            result.put("methods", experiment.run());
+            jsonOutput.put("methods", experiment_data);
 
             File report = new File(cmd.getOptionValue("output"));
             File parentDir = report.getParentFile();
@@ -289,7 +315,7 @@ public class Experiment {
             // Write data to file
             FileWriter writer = new FileWriter(report.getAbsolutePath());
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(result, writer);
+            gson.toJson(jsonOutput, writer);
             writer.flush();
             writer.close();
         } catch (Exception e) {
