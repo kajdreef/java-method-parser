@@ -80,11 +80,17 @@ public class Analyzer {
         
         try {
             FileWriter fileWriter = new FileWriter(outputPath);
-
+            fileWriter.append('[');
+            int i = 0;
             for (Method method : ccMap.values()) {
                 gson.toJson(method, fileWriter);
+                i++;
+                if(i <= ccMap.size() - 1){
+                    fileWriter.append(',');
+                }
             }
-
+    
+            fileWriter.append(']');
             fileWriter.flush();
         } catch (JsonIOException | IOException e) {
             e.printStackTrace();
@@ -101,17 +107,17 @@ public class Analyzer {
     public static void main(String[] args) throws FileNotFoundException, ParseException {
         Options options = new Options();
         options.addOption("s", "sut", true, "Path to the system under study.");
-        options.addOption("o", "output", true, "Output file path");
+        options.addOption("o", "outputPath", true, "Output file path");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
 
 
-        if (! (options.hasOption("sut") && options.hasOption("output"))) {
+        if (! (options.hasOption("sut") && options.hasOption("outputPath"))) {
             System.exit(1);
         }
         String projectDir = cmd.getOptionValue("sut");
-        String outputDir = cmd.getOptionValue("output");
+        String outputPath = cmd.getOptionValue("outputPath");
 
         // Initialize the analyzer
         Analyzer analyzer = new Analyzer();
@@ -126,6 +132,6 @@ public class Analyzer {
 
         analyzer.analyzeDirectory(projectDir);
 
-        analyzer.outputToFile(outputDir + "/test.json", true);
+        analyzer.outputToFile(outputPath, true);
     }
 }
