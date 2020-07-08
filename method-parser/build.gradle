@@ -6,7 +6,8 @@ plugins {
 dependencies {
     implementation (
         'com.github.javaparser:javaparser-symbol-solver-core:3.15.10',
-        'com.google.code.gson:gson:2.8.6'
+        'com.google.code.gson:gson:2.8.6',
+        'commons-cli:commons-cli:1.4'
     ) 
 }
 

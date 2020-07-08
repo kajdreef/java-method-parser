@@ -2,6 +2,8 @@ package com.kajdreef.analyzer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +15,19 @@ import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ast.CompilationUnit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.kajdreef.analyzer.util.DirectoryExplorer;
 import com.kajdreef.analyzer.visitor.AbstractMethodVisitor;
 import com.kajdreef.analyzer.visitor.MethodCyclomaticComplexityVisitor;
 import com.kajdreef.analyzer.visitor.MethodSignatureVisitor;
 import com.kajdreef.analyzer.visitor.Components.Method;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 import com.kajdreef.analyzer.metrics.*;
 
 public class Analyzer {
@@ -45,7 +55,7 @@ public class Analyzer {
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } catch(ParseProblemException e) {
+        } catch (ParseProblemException e) {
             System.out.println("Parsing error in file: " + file.toString());
         }
     }
@@ -58,7 +68,7 @@ public class Analyzer {
         return this.signatures.getMap().values().stream().collect(Collectors.toSet());
     }
 
-    public void outputToFile(boolean pp) {
+    public void outputToFile(String outputPath, boolean pp) {
         Gson gson;
         if (pp) {
             gson = new GsonBuilder().setPrettyPrinting().create();
@@ -67,9 +77,17 @@ public class Analyzer {
         }
 
         Map<Integer, Method> ccMap = this.getMap();
+        
+        try {
+            FileWriter fileWriter = new FileWriter(outputPath);
 
-        for (int key : ccMap.keySet()) {
-            System.out.println(gson.toJson(ccMap.get(key)));
+            for (Method method : ccMap.values()) {
+                gson.toJson(method, fileWriter);
+            }
+
+            fileWriter.flush();
+        } catch (JsonIOException | IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -80,8 +98,20 @@ public class Analyzer {
         return this;
     }
 
-    public static void main(String[] args) throws FileNotFoundException {
-        String projectDir = "/Users/kajdreef/code/research-scripts/projects/commons-io/";
+    public static void main(String[] args) throws FileNotFoundException, ParseException {
+        Options options = new Options();
+        options.addOption("s", "sut", true, "Path to the system under study.");
+        options.addOption("o", "output", true, "Output file path");
+
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = parser.parse(options, args);
+
+
+        if (! (options.hasOption("sut") && options.hasOption("output"))) {
+            System.exit(1);
+        }
+        String projectDir = cmd.getOptionValue("sut");
+        String outputDir = cmd.getOptionValue("output");
 
         // Initialize the analyzer
         Analyzer analyzer = new Analyzer();
@@ -96,6 +126,6 @@ public class Analyzer {
 
         analyzer.analyzeDirectory(projectDir);
 
-        analyzer.outputToFile(true);
+        analyzer.outputToFile(outputDir + "/test.json", true);
     }
 }
