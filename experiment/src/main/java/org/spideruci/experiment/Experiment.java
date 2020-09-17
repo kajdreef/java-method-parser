@@ -313,7 +313,7 @@ public class Experiment {
             }
 
             // Write data to file
-            FileWriter writer = new FileWriter(report.getAbsolutePath());
+            FileWriter writer = new FileWriter(report);
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(jsonOutput, writer);
             writer.flush();

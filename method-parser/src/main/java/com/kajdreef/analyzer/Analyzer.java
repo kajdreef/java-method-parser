@@ -78,8 +78,17 @@ public class Analyzer {
 
         Map<Integer, Method> ccMap = this.getMap();
         
+        // Create the file object and see if the parents path exists, it not create the parent directories.
+        File outputFile = new File(outputPath);
+        File parentDir = outputFile.getParentFile();
+
+        if (! parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+
+        // Write json object to file.
         try {
-            FileWriter fileWriter = new FileWriter(outputPath);
+            FileWriter fileWriter = new FileWriter(outputFile);
             fileWriter.append('[');
             int i = 0;
             for (Method method : ccMap.values()) {
