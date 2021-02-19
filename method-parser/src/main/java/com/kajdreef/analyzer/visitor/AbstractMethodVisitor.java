@@ -30,6 +30,7 @@ public abstract class AbstractMethodVisitor extends VoidVisitorAdapter<MethodSig
         this.filePath = filePath;
     }
 
+    @Override
     public void visit(PackageDeclaration p, MethodSignatures m) {
         this.packageName = p.getNameAsString();
         super.visit(p, m);

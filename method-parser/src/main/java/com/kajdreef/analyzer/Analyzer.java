@@ -34,10 +34,15 @@ public class Analyzer {
 
     private List<AbstractMethodVisitor> visitors;
     private MethodSignatures signatures;
+    private String sut = "";
 
     public Analyzer() {
         this.visitors = new ArrayList<>();
         this.signatures = new MethodSignatures();
+    }
+
+    public void setSut(String sut){
+        this.sut = sut;
     }
 
     public Analyzer addVisitor(AbstractMethodVisitor visitor) {
@@ -50,6 +55,11 @@ public class Analyzer {
             CompilationUnit cu = StaticJavaParser.parse(file);
 
             for (AbstractMethodVisitor visitor : this.visitors) {
+                String filePath = file.toString();
+
+                if (filePath.contains(this.sut)) {
+                    filePath = filePath.replace(this.sut, "");
+                }
                 visitor.setFilePath(file.toString());
                 visitor.visit(cu, this.signatures);
             }
@@ -130,6 +140,8 @@ public class Analyzer {
 
         // Initialize the analyzer
         Analyzer analyzer = new Analyzer();
+        
+        analyzer.setSut(projectDir);
 
         // Create the visitors we are going to use
         MethodSignatureVisitor ms_visitor = new MethodSignatureVisitor();
