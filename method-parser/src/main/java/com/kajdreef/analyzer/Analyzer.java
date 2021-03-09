@@ -60,7 +60,7 @@ public class Analyzer {
                 if (filePath.contains(this.sut)) {
                     filePath = filePath.replace(this.sut, "");
                 }
-                visitor.setFilePath(file.toString());
+                visitor.setFilePath(filePath);
                 visitor.visit(cu, this.signatures);
             }
         } catch (FileNotFoundException e) {
